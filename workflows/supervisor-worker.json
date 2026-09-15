@@ -4,6 +4,7 @@
   "status": "active",
   "summary": "Claude가 명세·역할배분·검수를 맡고 Codex가 정밀 구현을 맡는 Human-in-the-loop 오케스트레이션. 같은 Codex 세션을 유지하며 구조화 완료보고(JSON)를 받는다.",
   "requires": ["codex CLI (openai/codex)", "Python >= 3.9"],
-  "skills": ["role-split", "codex-delegate", "codex-completion-report"],
-  "doc": "docs/workflows/supervisor-worker.md"
+  "skills": ["role-split", "codex-delegate", "codex-completion-report", "codex-plugin-flow"],
+  "doc": "docs/workflows/supervisor-worker.md",
+  "note": "codex-plugin-flow 는 같은 워크플로우를 openai/codex-plugin-cc 로 도는 대안 메커니즘이다. 기본은 codex-delegate 이고, 어느 쪽을 쓰는지는 프로젝트 지침(CLAUDE.md 등)의 스위치가 정한다. 2026-09-11 현재 시범 보류 상태이며, 스킬 맨 앞의 재개 체크리스트 4항목을 통과하기 전에는 켜지 않는다."
 }
