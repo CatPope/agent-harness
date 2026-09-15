@@ -22,6 +22,7 @@
 """
 from __future__ import annotations
 
+import argparse
 import calendar
 import glob
 import io
@@ -212,3 +213,89 @@ def format_usage(usage: dict | None, now: float | None = None) -> str:
     return (f"컨텍스트 {usage['ctx']:,}/{usage['window']:,} ({usage['pct']:.0f}%)"
             f" · {limits} · 주간 {weekly}"
             f"   [{usage['at']} UTC 기준]")
+
+
+# ── CLI ────────────────────────────────────────────────────────────────────
+# 🔴 2026-09-11 추가. 이 모듈은 그때까지 **진입점이 없었다.**
+# CLAUDE.md 원칙이 "착수 전 사용량을 먼저 본다"며 이 파일을 직접 실행하라고
+# 지시했지만, 실행하면 아무것도 출력하지 않고 exit 0 으로 끝났다 — 실패로 보이지도
+# 않아서 "한도를 에러 메시지로 뒤늦게 인지"하는 실패가 반복됐다.
+# 같은 폴더의 codex_task / codex_watch / codex_compact 는 셋 다 진입점이 있었고
+# 이 파일만 빠져 있었다.
+
+# 한도가 이만큼 차 있으면 새 턴을 시작하지 않는다. 턴 중간에 끊기면 산출물이 0 이다.
+NEAR_LIMIT_PERCENT = 90.0
+
+
+def _emit(text: str) -> None:
+    """콘솔이 cp949 여도 죽지 않게. 값 자체는 그대로 두고 표시만 낮춘다."""
+    try:
+        print(text, flush=True)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", "replace").decode("ascii"), flush=True)
+
+
+def startup_decision(usage: dict | None, now: float | None = None) -> tuple[bool, str]:
+    """지금 새 Codex 턴을 시작해도 되는가. (되는가, 이유) 를 돌려준다.
+
+    5시간 창이 이미 지났으면(`is_stale`) 기록된 %는 **옛 창의 값**이다. 그 경우
+    한도는 이미 초기화됐다고 보는 게 맞으므로 막지 않는다 — 하루 전 92%를 보고
+    "곧 끊긴다"고 판단하는 것이 오히려 오류다.
+    """
+    if not usage:
+        return False, "사용량 기록을 찾지 못했다 — 한도를 모른 채로 시작하지 마라"
+
+    weekly = usage.get("weekly")
+    if weekly is not None and weekly >= NEAR_LIMIT_PERCENT:
+        return False, f"주간 한도 {weekly}% — 착수 보류"
+
+    used = usage.get("p5")
+    if used is None:
+        return True, "5시간 한도 값이 기록에 없다 — 판단 보류, 주의해서 진행"
+    if is_stale(usage, now):
+        return True, f"기록된 5시간 창은 이미 초기화됐다(옛 값 {used}%) — 착수 가능"
+    if used >= NEAR_LIMIT_PERCENT:
+        left = minutes_to_reset(usage, now)
+        return False, (f"5시간 한도 {used}% (기준 {NEAR_LIMIT_PERCENT:.0f}%) · "
+                       f"초기화까지 {left:.0f}분 — 착수 보류")
+    return True, f"5시간 한도 {used}% · 주간 {weekly}% — 착수 가능"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Codex 컨텍스트 점유율·사용량 한도 조회 (착수 전 확인용)",
+        epilog="종료코드: 0=착수 가능 · 2=한도 임박(착수 보류) · 3=기록 없음")
+    ap.add_argument("--dir", default=".",
+                    help="작업 디렉토리. --task 와 함께 그 작업의 세션을 본다")
+    ap.add_argument("--task",
+                    help="작업명. 주면 그 작업의 스레드를, 안 주면 가장 최근 롤아웃을 본다")
+    ap.add_argument("--json", action="store_true", help="원값을 JSON 으로 출력")
+    args = ap.parse_args()
+
+    thread = thread_of(args.dir, args.task) if args.task else None
+    if args.task and not thread:
+        _emit(f"경고: '{args.task}' 의 thread_id 를 못 찾았다 — 최근 롤아웃으로 대신 본다")
+
+    usage = read_usage(thread)
+
+    if args.json:
+        _emit(json.dumps(usage, ensure_ascii=False, indent=2))
+        return 0 if usage else 3
+
+    if not usage:
+        _emit("사용량 기록 없음 — ~/.codex/sessions 에 롤아웃이 없다")
+        return 3
+
+    _emit(format_usage(usage))
+
+    ok, why = startup_decision(usage)
+    _emit(("[착수 가능] " if ok else "[착수 보류] ") + why)
+
+    fast, fwhy = fast_decision(usage)
+    _emit(("[fast 모드] " if fast else "[표준 모드] ") + fwhy)
+
+    return 0 if ok else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -250,6 +250,15 @@ def cmd_report(args) -> int:
 
 
 def main() -> int:
+    # Windows 기본 콘솔은 cp949 라 em dash·⚠ 등에서 UnicodeEncodeError 가 난다.
+    # 이 실패는 fast 게이트가 발동한 실행에서만 나타나 — 즉 "평소엔 멀쩡하다가
+    # 특정 조건에서만" 죽으므로, 전달이 안 됐는데 됐다고 착각하기 쉽다.
+    # codex_watch.py 가 같은 이유로 먼저 고쳐졌다(2026-08-31).
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     ap = argparse.ArgumentParser(description="Codex 위임 헬퍼 (세션 유지 + 구조화 완료보고)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 

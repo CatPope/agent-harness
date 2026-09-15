@@ -94,11 +94,16 @@ def snapshot(base, task, tail):
     age = time.time() - os.path.getmtime(path)
 
     cmds, changed, searches, messages = [], [], 0, []
+    agy_calls = 0          # 규약상 검색은 agy 헤드리스로만 한다 (2026-09-14)
     for d in rows:
         item = d.get("item") or {}
         kind = item.get("type")
         if kind == "command_execution":
-            cmds.append(normalize(item.get("command", "")))
+            raw = item.get("command", "")
+            # agy 호출은 "검색 규약을 지켰다"는 증거다. 경로가 길어 normalize 전에 본다.
+            if "agy" in raw.lower():
+                agy_calls += 1
+            cmds.append(normalize(raw))
         elif kind == "file_change":
             for ch in item.get("changes", []):
                 changed.append((ch.get("kind"), os.path.basename(ch.get("path", ""))))
@@ -125,6 +130,11 @@ def snapshot(base, task, tail):
     finished = os.path.exists(os.path.join(os.path.dirname(path), f"report_{stamp}.json"))
     if age > 900 and not finished:
         flags.append(f"{age/60:.0f}분째 기록 없음 — 멈췄거나 긴 작업 중")
+    # 🔴 2026-09-14 규약: 검색은 agy 헤드리스로만 한다. Codex 자체 web_search 는 위반이다.
+    # 횟수가 적어도 봐주지 않는다 — 한 번이라도 쓰면 출처 확인 경로가 규약 밖으로 샌다.
+    if searches:
+        flags.append(f"🔴 규약 위반 — Codex 자체 웹검색 {searches}회. "
+                     f"검색은 agy 헤드리스로만 한다(AGENTS.md). 지시서에 그 문구가 있었는지 확인하라")
     if searches >= 12 and not changed:
         flags.append(f"웹검색 {searches}회에 산출물 0 — 찾는 것이 없을 수 있다")
 
@@ -145,6 +155,7 @@ def snapshot(base, task, tail):
     return {
         "task": task, "log": os.path.basename(path), "age": age, "usage": usage,
         "cmds": cmds, "changed": changed, "searches": searches,
+        "agy_calls": agy_calls,
         "messages": messages, "flags": flags, "tail": tail,
     }
 
@@ -153,7 +164,8 @@ def render(s):
     out = []
     out.append(f"=== {s['task']}   ({s['age']:.0f}초 전 기록 · {s['log']})")
     out.append(f"    명령 {len(s['cmds'])} · 파일변경 {len(s['changed'])} · "
-               f"웹검색 {s['searches']} · 메시지 {len(s['messages'])}")
+               f"웹검색 {s['searches']} · agy {s.get('agy_calls', 0)} · "
+               f"메시지 {len(s['messages'])}")
     u = s.get("usage")
     if u:
         out.append("    " + codex_usage.format_usage(u))
