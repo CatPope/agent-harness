@@ -28,6 +28,7 @@ import glob
 import io
 import json
 import os
+import sys
 import time
 
 STATE_DIR = ".claude-codex"
@@ -262,6 +263,16 @@ def startup_decision(usage: dict | None, now: float | None = None) -> tuple[bool
 
 
 def main() -> int:
+    # Windows 기본 콘솔은 cp949 라 한글·⚠ 등에서 출력이 깨지거나 UnicodeEncodeError 가 난다.
+    # 🔴 형제 셋(codex_task·codex_watch·codex_compact)은 전부 이 처리가 있었고 이 파일만
+    # 빠져 있었다(2026-09-15 발견). 같은 계열에서 하나만 빠뜨린 것이 이 파일에서만
+    # 두 번째다 — 09-11 에는 진입점 자체가 없었다.
+    # 한도 판정은 "착수 전에 읽는" 출력이므로, 읽히지 않으면 판정이 없는 것과 같다.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     ap = argparse.ArgumentParser(
         description="Codex 컨텍스트 점유율·사용량 한도 조회 (착수 전 확인용)",
         epilog="종료코드: 0=착수 가능 · 2=한도 임박(착수 보류) · 3=기록 없음")

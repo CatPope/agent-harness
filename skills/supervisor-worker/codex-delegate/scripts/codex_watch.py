@@ -20,12 +20,22 @@ import glob
 import io
 import json
 import os
+import re
 import sys
 import time
 
 import codex_usage                      # 같은 scripts/ 폴더 — 점유율·한도 공용 모듈
 
 STATE_DIR = ".claude-codex"
+
+# agy 를 "실행했는가"를 본다. 🔴 2026-09-15 수정 — 그전에는 `"agy" in raw.lower()` 라
+# 명령 문자열 어디에 있든 셌고, **검색 패턴 안에 들어간 `agy` 까지 호출로 집계**했다.
+# 실측: 일반화 감사 작업이 조직 고유 용어를 찾으려고
+#   -match '...|gws|agy|CLAUDE|AGENTS|...'
+# 를 돌렸는데 agy 4회로 찍혔다. 실제 호출은 0이다.
+# 이 칸은 "규약을 지켰다는 증거"로 쓰이므로, 부풀면 **위반을 준수로 보이게 만든다.**
+# 그래서 실행 파일 자리(경로 끝 agy / agy.exe)에 올 때만 센다.
+AGY_INVOKE = re.compile(r"(?:^|[\s\"'`=|&;(/\\])agy(?:\.exe)?(?:[\s\"'`]|$)", re.I)
 
 
 def read_events(path):
@@ -52,6 +62,20 @@ def is_read_only(cmd):
     """읽기만 하는 명령인가. 검증 루프와 막힌 상태를 가르는 데 쓴다."""
     low = str(cmd).lower().lstrip("$& (\"'")
     return any(v in low[:120] for v in READ_VERBS)
+
+
+def sandbox_of(base, task):
+    """이 작업을 어떤 샌드박스로 띄웠는가. 없으면 None.
+
+    🔴 2026-09-15 추가. read-only 로 띄운 조사·검증 작업은 **파일을 못 바꾸는 것이
+    정상**인데, "명령 N건인데 파일 변경 0" 경고가 그대로 떴다. 정상을 이상으로 보는
+    오탐이고, 경고가 흔해지면 진짜 신호를 가린다.
+    """
+    try:
+        with io.open(os.path.join(base, "state.json"), encoding="utf-8") as f:
+            return (json.load(f).get("tasks", {}).get(task) or {}).get("sandbox")
+    except Exception:
+        return None
 
 
 def rollout_status(work_dir, task):
@@ -101,7 +125,7 @@ def snapshot(base, task, tail):
         if kind == "command_execution":
             raw = item.get("command", "")
             # agy 호출은 "검색 규약을 지켰다"는 증거다. 경로가 길어 normalize 전에 본다.
-            if "agy" in raw.lower():
+            if AGY_INVOKE.search(raw):
                 agy_calls += 1
             cmds.append(normalize(raw))
         elif kind == "file_change":
@@ -120,7 +144,8 @@ def snapshot(base, task, tail):
     verifying = bool(changed) and is_read_only(worst)
     if n >= 4 and not verifying:
         flags.append(f"같은 명령 {n}회 반복 — 같은 벽에 부딪히는 중일 수 있다")
-    if len(cmds) >= 20 and not changed:
+    # read-only 로 띄웠으면 파일 변경 0 이 정상이다. 그때는 이 신호를 올리지 않는다.
+    if len(cmds) >= 20 and not changed and sandbox_of(base, task) != "read-only":
         flags.append(f"명령 {len(cmds)}건인데 파일 변경 0 — 조사만 하고 못 쓰고 있다")
     # 이미 끝난 작업은 "기록 없음"이 정상이다. 완료보고 파일이 있으면 침묵한다.
     # 단 **이 실행의** 보고여야 한다. 세션을 재사용하면 지난 턴의 report_*.json 이 남아 있어,
