@@ -1,20 +1,23 @@
 #!/usr/bin/env bash
-# agent-skills installer (macOS / Linux)
+# agent-harness installer (macOS / Linux)
 #
 #   ./install.sh --list
 #   ./install.sh --workflow supervisor-worker
 #   ./install.sh --status
 #
-# Links the _core skills plus the chosen workflow's skills into both agent
-# skill stores using symlinks. On Windows use install.ps1 instead: plain
-# symlinks there need administrator rights, junctions do not.
+# Copies the _core skills plus the chosen workflow's skills into both agent
+# skill stores. On Windows use install.ps1 instead.
+#
+# Copies, not links. A link makes the install target and this repo the same
+# files, so editing a skill while working on a project rewrites the shared
+# original at once. Installing is one-way: repo -> install target.
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
 
 CLAUDE_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 AGENTS_DIR="${AGENTS_SKILLS_DIR:-$HOME/.agents/skills}"
-MARKER="$AGENTS_DIR/.agent-skills-active"
+MARKER="$AGENTS_DIR/.agent-harness-active"
 
 WORKFLOW=""; DO_LIST=0; DO_STATUS=0; FORCE=0
 while [ $# -gt 0 ]; do
@@ -95,12 +98,12 @@ for src in "${TARGETS[@]}"; do
         failed+=("$link  (기존 링크 제거 실패)"); continue
       fi
     fi
-    ln -s "$src" "$link" 2>/dev/null || true
-    # 만들었다고 가정하지 않는다 — 실제로 그 대상을 가리키는지 확인하고 센다
-    if [ -L "$link" ] && [ "$(readlink "$link")" = "$src" ]; then
+    cp -r "$src" "$link" 2>/dev/null || true
+    # 만들었다고 가정하지 않는다 — SKILL.md 가 실제로 놓였는지 확인하고 센다
+    if [ -f "$link/SKILL.md" ]; then
       linked=$((linked+1))
     else
-      failed+=("$link  (링크 생성 실패)")
+      failed+=("$link  (복사 실패)")
     fi
   done
 done

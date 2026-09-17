@@ -1,13 +1,18 @@
 ﻿<#
-  agent-skills installer (Windows / PowerShell 5.1+)
+  agent-harness installer (Windows / PowerShell 5.1+)
 
   .\install.ps1 -List
   .\install.ps1 -Workflow supervisor-worker
   .\install.ps1 -Status
 
-  Links the _core skills plus the chosen workflow's skills into both agent
-  skill stores. Uses directory Junctions, which do NOT require administrator
-  rights (plain symlinks on Windows do - see README).
+  Copies the _core skills plus the chosen workflow's skills into both agent
+  skill stores.
+
+  Copies, not links. A link makes the install target and this repo the same
+  files, so editing a skill while working on a project rewrites the shared
+  original at once - project-specific notes leak into the repo and into every
+  other project. Installing is one-way: repo -> install target. Sending work
+  back is a separate step that generalises first.
 #>
 [CmdletBinding()]
 param(
@@ -21,7 +26,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $Root   = $PSScriptRoot
-$Marker = Join-Path $AgentsDir ".agent-skills-active"
+$Marker = Join-Path $AgentsDir ".agent-harness-active"
 
 function Get-Workflows {
   Get-ChildItem (Join-Path $Root "workflows") -Filter *.json | ForEach-Object {
@@ -75,45 +80,43 @@ foreach ($dir in @($ClaudeDir, $AgentsDir)) {
   if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
 }
 
-$linked = 0; $skipped = 0; $failed = @()
+$copied = 0; $skipped = 0; $failed = @()
 foreach ($src in $targets) {
   $name = Split-Path $src -Leaf
   foreach ($dir in @($ClaudeDir, $AgentsDir)) {
     $link = Join-Path $dir $name
     if (Test-Path $link) {
       $item = Get-Item $link -Force
-      if ($item.LinkType -eq "Junction" -and $item.Target -contains $src) {
+      # 예전 방식(정션·심링크)으로 깔려 있으면 끊고 복사본으로 바꾼다.
+      # 링크를 지우는 것이지 대상 폴더의 내용을 지우는 것이 아니다.
+      if ($item.LinkType -eq "Junction" -or $item.LinkType -eq "SymbolicLink") {
+        cmd /c rd /q "$link" | Out-Null
+        if (Test-Path $link) {
+          $failed += "$link  (기존 링크 제거 실패)"
+          continue
+        }
+      }
+      elseif (-not $Force) {
+        # 🔴 실제 폴더는 설치처에서 고쳤을 수 있다. 덮어쓰면 그 수정이 사라진다.
+        Write-Warning "이미 있습니다(건너뜀): $link  -> 덮어쓰려면 -Force"
         $skipped++
         continue
       }
-      # 실제 폴더는 -Force 로도 지우지 않는다. 그 안의 내용이 유일본일 수 있다.
-      if ($item.LinkType -ne "Junction" -and $item.LinkType -ne "SymbolicLink") {
-        $failed += "$link  (실제 폴더 — 내용을 확인해 옮기거나 지운 뒤 다시 실행)"
-        continue
-      }
-      if (-not $Force) {
-        Write-Warning "다른 곳을 가리키는 링크(건너뜀): $link  -> 교체하려면 -Force"
-        $skipped++
-        continue
-      }
-      cmd /c rd /q "$link" | Out-Null
-      if (Test-Path $link) {
-        $failed += "$link  (기존 링크 제거 실패)"
-        continue
+      else {
+        Remove-Item $link -Recurse -Force
       }
     }
-    cmd /c mklink /J "$link" "$src" | Out-Null
-    # 만들었다고 가정하지 않는다 — 실제로 정션이 됐는지 확인하고 센다
-    $made = Get-Item $link -Force -ErrorAction SilentlyContinue
-    if ($made -and $made.LinkType -eq "Junction") { $linked++ }
-    else { $failed += "$link  (링크 생성 실패)" }
+    Copy-Item -Path $src -Destination $link -Recurse -Force
+    # 만들었다고 가정하지 않는다 — SKILL.md 가 실제로 놓였는지 확인하고 센다
+    if (Test-Path (Join-Path $link "SKILL.md")) { $copied++ }
+    else { $failed += "$link  (복사 실패)" }
   }
 }
 
 Set-Content -Path $Marker -Value $wf.id -Encoding utf8
 Write-Host ""
 Write-Host ("설치: {0}" -f $wf.name)
-Write-Host ("  링크 {0}개 생성, {1}개 건너뜀, {2}개 실패" -f $linked, $skipped, $failed.Count)
+Write-Host ("  복사 {0}개, {1}개 건너뜀, {2}개 실패" -f $copied, $skipped, $failed.Count)
 Write-Host ("  대상: {0} / {1}" -f $ClaudeDir, $AgentsDir)
 Write-Host ("  스킬: {0}" -f (($targets | ForEach-Object { Split-Path $_ -Leaf }) -join ", "))
 
