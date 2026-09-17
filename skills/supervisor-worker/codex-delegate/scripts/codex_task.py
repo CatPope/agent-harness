@@ -16,7 +16,10 @@
   python codex_task.py start  <task> --dir <work_dir> --prompt-file <파일> [--sandbox ...]
   python codex_task.py send   <task> --dir <work_dir> --prompt-file <파일> [--sandbox ...]
   python codex_task.py status         --dir <work_dir> [<task>]
-  python codex_task.py report  <task> --dir <work_dir> [--turn -1]
+  python codex_task.py report  <task> --dir <work_dir> [--turn -1] [--table]
+
+`--table` 은 완료보고를 '참고한 소스 → 산출물 → 작업 요약' 표로 낸다.
+사용자에게 보여줄 때 쓴다 — 손으로 옮기면 형식이 어긋난다.
 
 프롬프트는 항상 파일로 넘긴다 — 긴 작업지시서를 명령행에 넣으면 Windows 인자 한도에 걸린다.
 """
@@ -90,6 +93,21 @@ def decide_fast(args) -> list[str]:
     if use:
         print("[속도] fast 모드 — 속도 1.5배, 크레딧 2.5배로 소모됩니다.")
     return list(codex_usage.FAST_ARGS) if use else []
+
+
+def model_args(args) -> list[str]:
+    """모델·추론강도를 codex exec 인자로 바꾼다. 지정 안 하면 빈 목록."""
+    out: list[str] = []
+    m = getattr(args, "model", None)
+    if m:
+        out += ["-m", m]
+    e = getattr(args, "reasoning_effort", None)
+    if e:
+        # -c 는 TOML 값을 받는다. 문자열이므로 따옴표가 값의 일부여야 한다.
+        out += ["-c", 'model_reasoning_effort="%s"' % e]
+    if out:
+        print("[모델] " + " ".join(out))
+    return out
 
 
 def run_codex(codex: str, work_dir: Path, prompt: str, *, schema: Path,
@@ -173,7 +191,7 @@ def cmd_start(args) -> int:
     report, events, thread_id = run_codex(
         codex, work_dir, prompt, schema=Path(args.schema),
         sandbox=args.sandbox, resume_id=None, run_dir=run_dir,
-        extra_args=decide_fast(args))
+        extra_args=model_args(args) + decide_fast(args))
 
     if not thread_id:
         sys.exit("thread_id 를 얻지 못했습니다. 세션을 이어갈 수 없으니 로그를 확인하세요: " + events)
@@ -208,7 +226,7 @@ def cmd_send(args) -> int:
     report, events, _ = run_codex(
         codex, work_dir, prompt, schema=Path(args.schema),
         sandbox=sandbox, resume_id=task["thread_id"], run_dir=run_dir,
-        extra_args=decide_fast(args))
+        extra_args=model_args(args) + decide_fast(args))
 
     task["turns"].append({"at": now(), "kind": "send", "events": events, "report": report})
     save_state(work_dir, state)
@@ -239,13 +257,92 @@ def cmd_status(args) -> int:
     return 0
 
 
+def _fmt_size(work_dir: Path, rel: str) -> str:
+    """산출물의 실제 크기. 지워졌거나 경로가 어긋나면 빈칸으로 둔다."""
+    try:
+        n = (work_dir / rel).stat().st_size
+    except Exception:
+        return "—"
+    return "{:,} B".format(n)
+
+
+def render_report(rep: dict, work_dir: Path) -> str:
+    """완료보고를 사람이 읽는 형태로. 참고 소스 → 산출물 → 작업 요약 순서다.
+
+    이 순서인 이유: 무엇을 보고(근거) 무엇을 만들었나(결과)가 먼저 잡혀야
+    요약 한 줄이 검증 가능해진다.  관리자 응답 형식과 같은 모양이다.
+    """
+    out = []
+    if rep.get("blocked"):
+        out.append("🔴 **막혔습니다 — 사람의 결정이 필요합니다**")
+        out.append("")
+        out.append("> " + (rep.get("blocked_reason") or "이유가 적히지 않았습니다"))
+        out.append("")
+
+    src = rep.get("consulted_sources") or []
+    out.append("**참고한 소스**")
+    out.append("")
+    if src:
+        out.append("| 소스 | 확인한 것 |")
+        out.append("|---|---|")
+        for it in src:
+            out.append("| `{}` | {} |".format(it.get("source", ""), it.get("why", "")))
+    else:
+        out.append("없음 — 아무 자료도 열지 않았다고 보고했습니다.")
+    out.append("")
+
+    mods = rep.get("modified_files") or []
+    out.append("**산출물**")
+    out.append("")
+    if mods:
+        out.append("| 파일 | 크기 | 변경 |")
+        out.append("|---|---:|---|")
+        for it in mods:
+            p = it.get("path", "")
+            out.append("| `{}` | {} | {} · {} |".format(
+                p, _fmt_size(work_dir, p), it.get("change", ""), it.get("note", "")))
+    else:
+        out.append("없음 — 고친 파일이 없다고 보고했습니다.")
+    out.append("")
+
+    cmds = rep.get("commands_run") or []
+    tests = rep.get("tests") or {}
+    out.append("**실행·검증**")
+    out.append("")
+    if cmds:
+        bad = [c for c in cmds if c.get("exit_code") != 0]
+        out.append("- 명령 {}건 실행, 실패 {}건".format(len(cmds), len(bad)))
+        for c in bad:
+            out.append("  - 🔴 `{}` → exit {}".format(c.get("command"), c.get("exit_code")))
+    else:
+        out.append("- 실행한 명령 없음")
+    out.append("- 테스트: {} — {}".format(
+        "실행함" if tests.get("ran") else "🔴 실행 안 함", tests.get("detail", "")))
+    out.append("")
+
+    un = rep.get("unfinished") or []
+    if un:
+        out.append("**미완**")
+        out.append("")
+        for it in un:
+            out.append("- {} — {}".format(it.get("item", ""), it.get("reason", "")))
+        out.append("")
+
+    out.append("**작업 요약:** " + (rep.get("summary") or ""))
+    return "\n".join(out)
+
+
 def cmd_report(args) -> int:
     work_dir = Path(args.dir).resolve()
     state = load_state(work_dir)
     task = state["tasks"].get(args.task)
     if not task or not task["turns"]:
         sys.exit(f"'{args.task}' 의 보고가 없습니다.")
-    print(json.dumps(task["turns"][args.turn]["report"], ensure_ascii=False, indent=2))
+    rep = task["turns"][args.turn]["report"]
+    if getattr(args, "table", False):
+        print(render_report(rep, work_dir))
+    else:
+        print(json.dumps(rep, ensure_ascii=False, indent=2))
     return 0
 
 
@@ -278,6 +375,12 @@ def main() -> int:
                            help="5시간 사용량이 이 값 이상일 때만 fast 모드 (기본 30)")
             p.add_argument("--fast-within-minutes", type=float, default=15.0,
                            help="초기화가 이 분 안에 올 때만 fast 모드 (기본 15)")
+            # 모델·추론강도는 생략하면 ~/.codex/config.toml 의 기본값을 따른다.
+            # 넘길 때는 resume 앞에 와야 한다(함정 1) — extra_args 로 합류시킨다.
+            p.add_argument("--model", "-m", default=None,
+                           help="모델 지정 (예: gpt-5.6-sol). 생략 시 config 기본값")
+            p.add_argument("--reasoning-effort", default=None,
+                           help="추론 강도 (minimal|low|medium|high|xhigh). 생략 시 config 기본값")
 
     p = sub.add_parser("start", help="새 Codex 세션 시작")
     common(p)
@@ -297,6 +400,8 @@ def main() -> int:
     p.add_argument("task")
     p.add_argument("--dir", default=".")
     p.add_argument("--turn", type=int, default=-1)
+    p.add_argument("--table", action="store_true",
+                   help="사람이 읽는 표로 출력 (참고 소스 → 산출물 → 작업 요약)")
     p.set_defaults(func=cmd_report)
 
     args = ap.parse_args()
