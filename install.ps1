@@ -48,7 +48,7 @@ param(
   [switch]$WithLinter,
   [string]$ClaudeDir = "$HOME\.claude\skills",
   [string]$AgentsDir = "$HOME\.agents\skills",
-  [string]$ToolsDir  = "$HOME\.claude	ools"
+  [string]$ToolsDir  = "$HOME\.claude\tools"
 )
 
 $ErrorActionPreference = "Stop"
