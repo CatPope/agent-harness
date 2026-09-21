@@ -1,0 +1,111 @@
+# PR 본문이 템플릿을 지켰는지 본다.
+#
+# 이 레포는 스킬 모음이 아니라 하네스(CLAUDE.md + 스킬 + 훅)와 그 배포 장치를
+# 함께 담는다. 그래서 '변경 유형'도 폴더에 맞춰 나뉘어 있고, 여기서는 그 선언이
+# 실제로 손댄 폴더와 맞는지까지 본다.
+#
+# 등급을 나눈다 — 형식이 깨진 것은 error 로 막고, 선언과 실제가 어긋난 것은
+# notice 로만 알린다. 뒤엣것은 사람이 판단할 일이지 기계가 막을 일이 아니다.
+name: PR Template Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  pr-template-check:
+    name: PR 템플릿 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 본문 형식 검사
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          body="$PR_BODY"
+          fail=0
+
+          # 1) 필수 섹션 존재 확인
+          for section in "## 변경 유형" "## 개요" "## 테스트 결과" "## 체크리스트"; do
+            if ! printf '%s' "$body" | grep -qF "$section"; then
+              echo "::error::필수 섹션이 없습니다: $section"
+              fail=1
+            fi
+          done
+
+          # 2) '변경 유형' 에서 최소 1개 체크되었는지 확인
+          change_block=$(printf '%s\n' "$body" | awk '/^## 변경 유형/{f=1;next} /^## /{f=0} f')
+          if ! printf '%s' "$change_block" | grep -qiE '\[x\]'; then
+            echo "::error::'변경 유형'에서 최소 1개 항목을 [x]로 체크하세요."
+            fail=1
+          fi
+
+          # 3) '개요' 가 비어 있지 않은지 — 주석과 빈 줄을 걷어내고 본다
+          overview=$(printf '%s\n' "$body" | awk '/^## 개요/{f=1;next} /^## /{f=0} f' \
+            | sed 's/<!--.*-->//' | grep -v '^\s*$' | grep -v '^\s*<!--' | grep -v '^\s*-->' || true)
+          if [ -z "$overview" ]; then
+            echo "::error::'개요'가 비어 있습니다. 무엇을 왜 바꿨는지 한 줄이라도 적으세요."
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "PR 템플릿 규칙을 준수하지 않았습니다. 본문을 수정하세요."
+            exit 1
+          fi
+          echo "PR 템플릿 검증 통과"
+
+      - name: 선언한 유형과 실제로 손댄 곳 대조
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          body="$PR_BODY"
+          files="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          echo "바뀐 파일:"; printf '%s\n' "$files" | sed 's/^/  /'
+
+          # 체크된 항목인지 본다. 라벨은 템플릿의 문구 앞부분과 맞춘다.
+          checked () {  # checked <라벨>
+            printf '%s\n' "$body" \
+              | awk '/^## 변경 유형/{f=1;next} /^## /{f=0} f' \
+              | grep -iE '^\s*-\s*\[x\]' | grep -qF "$1"
+          }
+
+          # 경로 -> 유형. 한 줄에 정규식과 라벨을 둔다.
+          check_pair () {  # check_pair <경로 정규식> <라벨>
+            if printf '%s\n' "$files" | grep -qE "$1"; then
+              if ! checked "$2"; then
+                echo "::notice::'$2' 를 손댔는데 '변경 유형'에 표시하지 않았습니다. ($1)"
+              fi
+            fi
+          }
+
+          check_pair '^skills/'                              '스킬'
+          check_pair '^hooks/'                               '훅'
+          check_pair '^claude/'                              'CLAUDE.md 조각'
+          check_pair '^(workflows|packs)/'                   '워크플로우·팩 매니페스트'
+          check_pair '^shared/'                              '공용 레이어'
+          check_pair '^(install\.(ps1|sh)|tools/)'           '설치기·도구'
+          check_pair '^(README\.md|docs/)'                   '문서'
+          check_pair '^(\.github/|\.gitignore|\.gitattributes)' 'CI·레포 설정'
+
+          # 설치기는 두 개가 짝이다. 한쪽만 고치면 OS 마다 동작이 갈라진다 —
+          # 실제로 2026-09 에 install.sh 의 force 동작만 옛 로직으로 남아
+          # 두 번째 실행부터 전 항목이 실패한 적이 있다.
+          ps1=0; sh=0
+          printf '%s\n' "$files" | grep -qx 'install.ps1' && ps1=1
+          printf '%s\n' "$files" | grep -qx 'install.sh'  && sh=1
+          if [ "$ps1" -ne "$sh" ]; then
+            echo "::warning::install.ps1 과 install.sh 중 한쪽만 바뀌었습니다. 두 설치기의 동작이 갈라지지 않는지 확인하세요."
+          fi
+
+          echo "대조 완료"

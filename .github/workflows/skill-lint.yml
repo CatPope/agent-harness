@@ -1,0 +1,104 @@
+# 하네스 검사 — 이 레포가 스킬의 규약과 린터를 모두 갖는다.
+#
+# 예전에는 규약과 린터가 doc-skills 에 있고 이 레포는 README 에서 플레이스홀더
+# 경로로 가리키기만 했다. 그래서 **어느 쪽도 CI 에서 돌리지 않았다.**
+# 2026-09-21 에 doc-skills 를 이 레포로 병합하면서 검사도 여기로 들여왔다.
+#
+# 이 레포는 스킬만 담지 않는다. 하네스(CLAUDE.md + 스킬 + 훅)와 그것을 나르는
+# 매니페스트·설치기·공용 레이어가 함께 있다. 그래서 검사도 두 층이다.
+#
+#   1) 스킬 안쪽    포터빌리티 린터 — 남의 기계에서 깨지지 않는가
+#   2) 스킬 바깥    매니페스트 정합성 — 설치기가 실제로 그것을 나르는가
+#
+# 2층이 없으면 스킬을 추가해 놓고 매니페스트에 안 넣는 실수를 아무도 못 잡는다.
+# 린터는 통과하고, 설치처에는 그냥 없다.
+name: harness-lint
+
+on:
+  push:
+    paths:
+      - 'skills/**'
+      - 'shared/**'
+      - 'workflows/**'
+      - 'packs/**'
+      - 'tools/**'
+      - 'install.ps1'
+      - 'install.sh'
+      - '.github/workflows/skill-lint.yml'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'shared/**'
+      - 'workflows/**'
+      - 'packs/**'
+      - 'tools/**'
+      - 'install.ps1'
+      - 'install.sh'
+      - '.github/workflows/skill-lint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: 하네스 검사
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # 두 검사기 모두 표준 라이브러리만 쓴다. 3.8+ 면 어디서든 돈다.
+          python-version: '3.11'
+
+      - name: 스킬 묶음을 찾는다
+        id: find
+        run: |
+          set -euo pipefail
+          # skills/ 바로 아래의 각 묶음(_core · 워크플로우별 · 팩별)을 따로 돌린다.
+          # 린터는 SKILL.md 를 가진 폴더이거나 그 부모 폴더를 받는다.
+          bundles=$(find skills -mindepth 1 -maxdepth 1 -type d | sort)
+          echo "발견한 묶음:"; echo "$bundles"
+          echo "bundles<<EOT" >> "$GITHUB_OUTPUT"
+          echo "$bundles"     >> "$GITHUB_OUTPUT"
+          echo "EOT"          >> "$GITHUB_OUTPUT"
+
+      - name: 1) 포터빌리티 린터
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r b; do
+            [ -n "$b" ] || continue
+            echo "::group::$b"
+            python tools/check_skill.py "$b" || fail=1
+            echo "::endgroup::"
+          done <<< '${{ steps.find.outputs.bundles }}'
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::포터빌리티 린터에서 FAIL 이 나왔습니다."
+            exit 1
+          fi
+          echo "전 묶음 통과"
+
+      - name: 2) 매니페스트 정합성
+        run: |
+          set -euo pipefail
+          python tools/check_manifests.py || {
+            echo "::error::매니페스트와 실제 폴더가 어긋납니다. 설치기가 나르지 못하는 스킬이 있습니다."
+            exit 1
+          }
+
+      - name: 3) 설치기 두 벌이 같은 옵션을 받는가
+        run: |
+          set -euo pipefail
+          # install.ps1 과 install.sh 는 짝이다. 한쪽에만 옵션이 생기면 OS 마다
+          # 동작이 갈라진다 — 실제로 2026-09 에 force 동작이 갈라져 있었다.
+          miss=0
+          for pair in "Workflow:--workflow" "Pack:--pack" "WithLinter:--with-linter" \
+                      "Force:--force" "List:--list" "Status:--status"; do
+            ps="${pair%%:*}"; sh="${pair##*:}"
+            grep -q -- "\$$ps" install.ps1 || { echo "::warning::install.ps1 에 -$ps 가 없습니다"; miss=1; }
+            grep -q -- "$sh"  install.sh  || { echo "::warning::install.sh 에 $sh 가 없습니다"; miss=1; }
+          done
+          [ "$miss" -eq 0 ] && echo "두 설치기가 같은 옵션을 받습니다"
+          exit 0
