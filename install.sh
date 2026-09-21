@@ -4,9 +4,14 @@
 #   ./install.sh --list
 #   ./install.sh --workflow supervisor-worker
 #   ./install.sh --status
+#   ./install.sh --workflow supervisor-worker --with-linter
+#   ./install.sh --pack documents --pack skillcraft
 #
 # Copies the _core skills plus the chosen workflow's skills into both agent
 # skill stores. On Windows use install.ps1 instead.
+#
+# A pack (--pack) is a topic bundle installed on its own: it brings only its own
+# skills, not _core. Workflow and packs can be given together.
 #
 # Copies, not links. A link makes the install target and this repo the same
 # files, so editing a skill while working on a project rewrites the shared
@@ -18,14 +23,24 @@ ROOT="$(pwd)"
 CLAUDE_DIR="${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}"
 AGENTS_DIR="${AGENTS_SKILLS_DIR:-$HOME/.agents/skills}"
 MARKER="$AGENTS_DIR/.agent-harness-active"
+PACK_MARKER="$AGENTS_DIR/.agent-harness-packs"
+TOOLS_DIR="${CLAUDE_TOOLS_DIR:-$HOME/.claude/tools}"
 
-WORKFLOW=""; DO_LIST=0; DO_STATUS=0; FORCE=0
+WORKFLOW=""; DO_LIST=0; DO_STATUS=0; FORCE=0; WITH_LINTER=0
+PACKS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --list)     DO_LIST=1 ;;
     --status)   DO_STATUS=1 ;;
+    # 🔴 권장하지 않는다. 자세한 것은 README 의 "설치" 절과
+    #    skills/_core/harness-repo 의 가져오기 절차를 보라.
     --force)    FORCE=1 ;;
+    # 선택 설치. 포터빌리티 린터를 설치처에도 둔다.
+    # 없어도 스킬은 정상 동작한다 — 스킬을 고칠 사람만 필요하다.
+    --with-linter) WITH_LINTER=1 ;;
     --workflow) shift; WORKFLOW="${1:-}" ;;
+    # 주제별 묶음. 여러 번 주거나 쉼표로 이어 줄 수 있다.
+    --pack)     shift; IFS=, read -r -a _p <<< "${1:-}"; PACKS+=("${_p[@]}") ;;
     *) echo "알 수 없는 인자: $1" >&2; exit 2 ;;
   esac
   shift
@@ -35,7 +50,7 @@ PY="${PYTHON:-python3}"
 command -v "$PY" >/dev/null 2>&1 || PY=python
 
 field () {  # field <json-file> <key>
-  "$PY" - "$1" "$2" <<'PYEOF'
+  PYTHONIOENCODING=utf-8 "$PY" - "$1" "$2" <<'PYEOF'
 import json, sys
 d = json.load(open(sys.argv[1], encoding="utf-8"))
 v = d.get(sys.argv[2], "")
@@ -43,59 +58,137 @@ print(" ".join(v) if isinstance(v, list) else (v if v is not None else ""))
 PYEOF
 }
 
+# 설치처가 레포와 실제로 다른지 본다. 같으면 DELTA 가 빈 문자열이다.
+#
+# 비교에서 빼는 것 — 파이썬 캐시, 수정 전 안전 사본, 설치처가 남기는 로컬 기록.
+# 이것까지 세면 멀쩡한 설치처가 전부 "변경됨"으로 잡힌다.
+DELTA=""
+skill_delta () {  # skill_delta <레포 원본> <설치된 것>
+  local out changed only_repo only_local total names bits
+  out="$(diff -rq \
+    --exclude='__pycache__' --exclude='*.pyc' \
+    --exclude='*.bak_*'     --exclude='기록' \
+    "$1" "$2" 2>/dev/null || true)"
+  if [ -z "$out" ]; then DELTA=""; return 0; fi
+
+  total="$(printf '%s\n' "$out" | grep -c . || true)"
+  changed="$(printf '%s\n' "$out" | grep -cE '^Files .* differ$' || true)"
+  only_repo="$(printf '%s\n' "$out" | grep -cF "Only in $1" || true)"
+  only_local=$(( total - changed - only_repo ))
+
+  bits=""
+  [ "$changed"    -gt 0 ] && bits="내용 다름 $changed"
+  [ "$only_repo"  -gt 0 ] && bits="${bits:+$bits · }레포에만 $only_repo"
+  [ "$only_local" -gt 0 ] && bits="${bits:+$bits · }설치처에만 $only_local"
+
+  # 어느 파일인지 앞의 셋만 이름으로 보여준다
+  names="$(printf '%s\n' "$out" \
+    | sed -n 's/^Files \(.*\) and .* differ$/\1/p; s/^Only in .*: \(.*\)$/\1/p' \
+    | sed 's#.*/##' | head -3 | tr '\n' ',' | sed 's/,$//; s/,/, /g')"
+  DELTA="$bits  ($names)"
+}
+
 if [ "$DO_LIST" = 1 ]; then
-  echo; echo "사용 가능한 워크플로우"; echo
+  echo; echo "워크플로우 — _core 공통 스킬과 함께 설치됩니다"; echo
   for f in workflows/*.json; do
     printf "  %-20s [%s] %s\n" "$(field "$f" id)" "$(field "$f" status)" "$(field "$f" name)"
     printf "  %-20s   %s\n\n" "" "$(field "$f" summary)"
   done
-  echo "설치:  ./install.sh --workflow <id>"; echo
+  echo "팩 — 주제별 묶음. 자기 스킬만 설치합니다"; echo
+  for f in packs/*.json; do
+    [ -e "$f" ] || continue
+    printf "  %-20s [%s] %s\n" "$(field "$f" id)" "$(field "$f" status)" "$(field "$f" name)"
+    printf "  %-20s   %s\n\n" "" "$(field "$f" summary)"
+  done
+  echo "설치:  ./install.sh --workflow <id>"
+  echo "       ./install.sh --pack <id> [--pack <id>]"; echo
   exit 0
 fi
 
 if [ "$DO_STATUS" = 1 ]; then
   if [ -f "$MARKER" ]; then echo "활성 워크플로우: $(cat "$MARKER")"
   else echo "활성 워크플로우 없음 (아직 설치하지 않았습니다)"; fi
+  if [ -f "$PACK_MARKER" ]; then echo "설치한 팩: $(cat "$PACK_MARKER")"
+  else echo "설치한 팩 없음"; fi
   exit 0
 fi
 
-[ -n "$WORKFLOW" ] || { echo "--workflow <id> 를 지정하거나 --list 로 목록을 보세요." >&2; exit 2; }
-MF="workflows/$WORKFLOW.json"
-[ -f "$MF" ] || { echo "알 수 없는 워크플로우: $WORKFLOW  (--list 로 확인)" >&2; exit 2; }
-ST="$(field "$MF" status)"
-[ "$ST" = "active" ] || { echo "'$WORKFLOW' 는 status=$ST 입니다. 아직 설치할 수 없습니다." >&2; exit 2; }
+if [ -z "$WORKFLOW" ] && [ "${#PACKS[@]}" -eq 0 ]; then
+  echo "--workflow <id> 또는 --pack <id> 를 지정하거나, --list 로 목록을 보세요." >&2
+  exit 2
+fi
 
-TARGETS=()
-for d in skills/_core/*/; do TARGETS+=("$ROOT/${d%/}"); done
-for s in $(field "$MF" skills); do
-  p="$ROOT/skills/$WORKFLOW/$s"
-  [ -d "$p" ] || { echo "매니페스트에 있으나 폴더가 없습니다: $p" >&2; exit 1; }
-  TARGETS+=("$p")
+TARGETS=(); CHOSEN=()
+
+# 워크플로우를 고르면 _core 공통 스킬이 함께 온다.
+if [ -n "$WORKFLOW" ]; then
+  MF="workflows/$WORKFLOW.json"
+  [ -f "$MF" ] || { echo "알 수 없는 워크플로우: $WORKFLOW  (--list 로 확인)" >&2; exit 2; }
+  ST="$(field "$MF" status)"
+  [ "$ST" = "active" ] || { echo "'$WORKFLOW' 는 status=$ST 입니다. 아직 설치할 수 없습니다." >&2; exit 2; }
+  for d in skills/_core/*/; do TARGETS+=("$ROOT/${d%/}"); done
+  for s in $(field "$MF" skills); do
+    p="$ROOT/skills/$WORKFLOW/$s"
+    [ -d "$p" ] || { echo "매니페스트에 있으나 폴더가 없습니다: $p" >&2; exit 1; }
+    TARGETS+=("$p")
+  done
+  CHOSEN+=("$(field "$MF" name)")
+fi
+
+# 팩은 자기 스킬만 가져온다. _core 를 끌고 오지 않는다.
+PACK_IDS=()
+for pk in "${PACKS[@]:-}"; do
+  [ -n "$pk" ] || continue
+  PF="packs/$pk.json"
+  [ -f "$PF" ] || { echo "알 수 없는 팩: $pk  (--list 로 확인)" >&2; exit 2; }
+  PST="$(field "$PF" status)"
+  [ "$PST" = "active" ] || { echo "'$pk' 는 status=$PST 입니다. 아직 설치할 수 없습니다." >&2; exit 2; }
+  for s in $(field "$PF" skills); do
+    p="$ROOT/skills/$pk/$s"
+    [ -d "$p" ] || { echo "매니페스트에 있으나 폴더가 없습니다: $p" >&2; exit 1; }
+    TARGETS+=("$p")
+  done
+  PACK_IDS+=("$pk")
+  CHOSEN+=("$(field "$PF" name)")
 done
 
 mkdir -p "$CLAUDE_DIR" "$AGENTS_DIR"
 
-linked=0; skipped=0; failed=()
+if [ "$FORCE" = 1 ]; then
+  echo
+  echo "경고 --force: 이미 있는 스킬 폴더를 지우고 레포 것으로 덮어씁니다." >&2
+  echo "             설치처에서 고친 내용은 사라지며 되돌릴 수 없습니다." >&2
+  echo "             갱신이 목적이라면 skills/_core/harness-repo 의" >&2
+  echo "             가져오기 절차를 쓰십시오 — 필요한 것만 골라 병합합니다." >&2
+  echo
+fi
+
+linked=0; skipped=0; same=0; failed=(); NEED_MERGE=()
 for src in "${TARGETS[@]}"; do
   name="$(basename "$src")"
   for dir in "$CLAUDE_DIR" "$AGENTS_DIR"; do
     link="$dir/$name"
     if [ -e "$link" ] || [ -L "$link" ]; then
-      if [ -L "$link" ] && [ "$(readlink "$link")" = "$src" ]; then
+      # 예전 방식(심링크)으로 깔려 있으면 끊고 복사본으로 바꾼다.
+      # 링크를 끊는 것이지 가리키던 폴더의 내용을 없애는 것이 아니다.
+      if [ -L "$link" ]; then
+        unlink "$link" 2>/dev/null || true
+        if [ -e "$link" ] || [ -L "$link" ]; then
+          failed+=("$link  (기존 링크 제거 실패)"); continue
+        fi
+      elif [ "$FORCE" != 1 ]; then
+        # 실제 디렉터리는 설치처에서 고쳤을 수 있다. 덮어쓰면 그 수정이 사라진다.
+        # 그래서 지나치기 전에 "정말 같은가"를 본다. 같으면 알릴 것이 없고,
+        # 다르면 덮어쓰기가 아니라 병합이 필요한 상태다.
+        skill_delta "$src" "$link"
+        if [ -z "$DELTA" ]; then
+          same=$((same+1))
+        else
+          NEED_MERGE+=("$name|$DELTA|$link")
+        fi
         skipped=$((skipped+1)); continue
-      fi
-      # 심링크가 아닌 실제 디렉터리는 --force 로도 지우지 않는다. 안의 내용이 유일본일 수 있다.
-      if [ ! -L "$link" ]; then
-        failed+=("$link  (실제 디렉터리 — 내용을 확인해 옮기거나 지운 뒤 다시 실행)")
-        continue
-      fi
-      if [ "$FORCE" != 1 ]; then
-        echo "다른 곳을 가리키는 링크(건너뜀): $link  -> 교체하려면 --force" >&2
-        skipped=$((skipped+1)); continue
-      fi
-      unlink "$link" 2>/dev/null || true
-      if [ -e "$link" ] || [ -L "$link" ]; then
-        failed+=("$link  (기존 링크 제거 실패)"); continue
+      else
+        rm -rf "$link"
       fi
     fi
     cp -r "$src" "$link" 2>/dev/null || true
@@ -108,20 +201,64 @@ for src in "${TARGETS[@]}"; do
   done
 done
 
-printf '%s' "$WORKFLOW" > "$MARKER"
+# 린터는 선택 설치다. 스킬과 달리 설치처에서 고칠 것이 아니라 그대로 쓰는
+# 도구이므로, 이미 있으면 말없이 최신본으로 덮어쓴다.
+if [ "$WITH_LINTER" = 1 ]; then
+  mkdir -p "$TOOLS_DIR"
+  # 정본은 스킬 안에 있다. tools/check_skill.py 는 그리로 넘기는 런처라
+  # 그것을 복사하면 설치처에서 경로를 못 찾는다.
+  LINTER="$ROOT/skills/skillcraft/portable-skill-authoring/scripts/check_skill.py"
+  [ -f "$LINTER" ] || { echo "린터를 찾을 수 없습니다: $LINTER" >&2; exit 1; }
+  cp -f "$LINTER" "$TOOLS_DIR/check_skill.py"
+  if [ -f "$TOOLS_DIR/check_skill.py" ]; then
+    echo "린터 설치: $TOOLS_DIR/check_skill.py"
+  else
+    failed+=("$TOOLS_DIR/check_skill.py  (린터 복사 실패)")
+  fi
+fi
+
+[ -n "$WORKFLOW" ] && printf '%s' "$WORKFLOW" > "$MARKER"
+if [ "${#PACK_IDS[@]}" -gt 0 ]; then
+  # 이번에 설치한 것만 적지 않는다 — 전에 깔아 둔 팩이 지워진 것처럼 보이므로 합친다.
+  prev=""
+  [ -f "$PACK_MARKER" ] && prev="$(cat "$PACK_MARKER")"
+  printf '%s\n' "$prev" "${PACK_IDS[@]}" \
+    | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort -u \
+    | paste -sd',' - | sed 's/,/, /g' > "$PACK_MARKER"
+fi
 echo
-echo "설치: $(field "$MF" name)"
-echo "  링크 ${linked}개 생성, ${skipped}개 건너뜀, ${#failed[@]}개 실패"
+joined=""
+for c in "${CHOSEN[@]}"; do
+  if [ -z "$joined" ]; then joined="$c"; else joined="$joined + $c"; fi
+done
+echo "설치: $joined"
+echo "  복사 ${linked}개, ${skipped}개 건너뜀(같음 ${same} · 변경됨 ${#NEED_MERGE[@]}), ${#failed[@]}개 실패"
 echo "  대상: $CLAUDE_DIR / $AGENTS_DIR"
 echo "  스킬: $(for t in "${TARGETS[@]}"; do printf '%s ' "$(basename "$t")"; done)"
+
+if [ "${#NEED_MERGE[@]}" -gt 0 ]; then
+  echo
+  echo "🔴 병합이 필요합니다 — 설치처 내용이 레포와 다릅니다:" >&2
+  for m in "${NEED_MERGE[@]}"; do
+    echo "  - ${m%%|*}" >&2
+    rest="${m#*|}"
+    echo "      ${rest%%|*}" >&2
+    echo "      ${rest#*|}" >&2
+  done
+  echo >&2
+  echo "설치처에서 고친 것일 수도, 레포가 앞서 나간 것일 수도 있습니다." >&2
+  echo "🔴 --force 로 덮어쓰지 마십시오 — 설치처의 수정이 사라지고 되돌릴 수 없습니다." >&2
+  echo "   skills/_core/harness-repo 의 가져오기 절차를 쓰십시오. 새 것 / 다른 것 /" >&2
+  echo "   설치처에만 있는 것으로 갈라 필요한 것만 병합합니다." >&2
+  echo >&2
+fi
 
 if [ "${#failed[@]}" -gt 0 ]; then
   echo
   echo "처리하지 못한 항목 — 이 경로들은 아직 저장소를 가리키지 않습니다:" >&2
   for f in "${failed[@]}"; do echo "  - $f" >&2; done
   echo >&2
-  echo "실제 디렉터리는 자동으로 지우지 않습니다. 안에 있는 것이 유일본일 수 있기 때문입니다." >&2
-  echo "내용을 확인해 저장소로 옮겼거나 더 필요 없다고 판단되면, 직접 지운 뒤 다시 실행하세요." >&2
+  echo "복사 자체가 실패한 항목입니다. 권한·디스크·경로를 확인하고 다시 실행하세요." >&2
   echo >&2
   exit 1
 fi
