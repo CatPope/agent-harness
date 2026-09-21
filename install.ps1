@@ -235,6 +235,18 @@ foreach ($src in $targets) {
   }
 }
 
+# 마커는 복사가 끝난 직후에 적는다. 린터는 선택 설치라, 그쪽이 실패해도
+# 스킬은 이미 놓였다. 뒤에 적으면 그 실패가 설치 기록까지 지워 -Status 가
+# "설치하지 않았습니다" 라고 거짓말을 한다.
+if ($Workflow) { Set-Content -Path $Marker -Value $wf.id -Encoding utf8 }
+if ($packIds.Count -gt 0) {
+  # 이번에 설치한 것만 적지 않는다 — 전에 깔아 둔 팩이 지워진 것처럼 보이므로 합친다.
+  $prev = @()
+  if (Test-Path $PackMarker) { $prev = (Get-Content $PackMarker -Raw).Trim() -split "\s*,\s*" }
+  $all = @($prev + $packIds | Where-Object { $_ } | Sort-Object -Unique)
+  Set-Content -Path $PackMarker -Value ($all -join ", ") -Encoding utf8
+}
+
 # 린터는 선택 설치다. 스킬과 달리 설치처에서 고칠 것이 아니라 그대로 쓰는
 # 도구이므로, 이미 있으면 말없이 최신본으로 덮어쓴다.
 if ($WithLinter) {
@@ -251,14 +263,6 @@ if ($WithLinter) {
   }
 }
 
-if ($Workflow) { Set-Content -Path $Marker -Value $wf.id -Encoding utf8 }
-if ($packIds.Count -gt 0) {
-  # 이번에 설치한 것만 적지 않는다 — 전에 깔아 둔 팩이 지워진 것처럼 보이므로 합친다.
-  $prev = @()
-  if (Test-Path $PackMarker) { $prev = (Get-Content $PackMarker -Raw).Trim() -split "\s*,\s*" }
-  $all = @($prev + $packIds | Where-Object { $_ } | Sort-Object -Unique)
-  Set-Content -Path $PackMarker -Value ($all -join ", ") -Encoding utf8
-}
 Write-Host ""
 Write-Host ("설치: {0}" -f ($chosen -join " + "))
 Write-Host ("  복사 {0}개, {1}개 건너뜀(같음 {2} · 변경됨 {3}), {4}개 실패" -f `
