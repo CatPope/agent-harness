@@ -1,0 +1,5 @@
+# Pin runtime Python deps here so setup.sh / setup.ps1 can install them.
+# A no-base agent has ONLY the standard library; list everything you import.
+# Example:
+# Pillow>=10.0
+# openpyxl>=3.1

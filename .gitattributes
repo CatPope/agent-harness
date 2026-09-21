@@ -1,3 +1,7 @@
+# Keep LF for cross-platform scripts (CRLF would break setup.sh on Unix).
 * text=auto eol=lf
 *.ps1 text eol=crlf
 *.png binary
+*.bmp binary
+*.hwpx binary
+*.xlsx binary

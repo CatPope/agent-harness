@@ -1,0 +1,10 @@
+{
+  "id": "documents",
+  "name": "문서 편집 (한글 .hwpx)",
+  "status": "active",
+  "summary": "실제 문서 파일을 만들거나 고치는 스킬 묶음. 한글 .hwpx 에 편집 가능한 OWPML 표를 넣고, 이미지로 박힌 표를 진짜 표로 되돌린다.",
+  "requires": ["Python >= 3.9", "Node.js (verify_hwpx.mjs 검증용)"],
+  "skills": ["hwpx-table-kit", "hwpx-image-table-to-table"],
+  "origin": "CatPope/doc-skills (2026-09-21 이 레포로 병합)",
+  "note": "스킬 본문은 영어다. doc-skills 의 규약을 그대로 들여온 것이라 손대지 않는다. hwpx-image-table-to-table 은 레시피이고 hwpx-table-kit 을 엔진으로 쓴다 — 따로 설치하지 말고 묶음째 설치한다."
+}

@@ -8,3 +8,20 @@ __pycache__/
 
 # 설치처가 남기는 로컬 기록(제출 원문·사내 태그 등) — 커밋하지 않는다
 기록/
+
+# --- documents 팩이 다루는 '남의 문서'는 절대 커밋하지 않는다 ---
+# 스킬이 작업하는 문서와 그 산출물은 사용자 데이터이지 레포 자산이 아니다.
+# 예제가 필요하면 스킬의 examples/ 안에 픽스처로 둔다. (doc-skills 에서 들여온 규칙)
+node_modules/
+package-lock.json
+*.hwpx
+*.hwp
+*.xlsx
+*.xls
+*.docx
+*.pptx
+*.pdf
+*.bmp
+*.png
+*.jpg
+*.jpeg

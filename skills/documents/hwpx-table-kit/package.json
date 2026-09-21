@@ -1,0 +1,10 @@
+{
+  "name": "hwpx-table-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Verification deps for hwpx-table-kit (kordoc HWPX parser).",
+  "type": "module",
+  "dependencies": {
+    "kordoc": "^1.6.1"
+  }
+}

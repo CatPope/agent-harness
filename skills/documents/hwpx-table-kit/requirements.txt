@@ -1,0 +1,5 @@
+# Python deps for hwpx-table-kit.
+# Pillow  -> convert embedded .bmp table images to .png so an agent can read them
+# openpyxl -> read source data from .xlsx
+Pillow>=10.0
+openpyxl>=3.1

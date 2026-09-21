@@ -1,0 +1,8 @@
+# Add to the repo root .gitattributes. Guarantees setup.sh keeps LF endings
+# even when authored/committed on Windows — CRLF would break `bash setup.sh`.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.bmp binary
+*.hwpx binary
+*.xlsx binary
