@@ -95,10 +95,26 @@ jobs:
           # 동작이 갈라진다 — 실제로 2026-09 에 force 동작이 갈라져 있었다.
           miss=0
           for pair in "Workflow:--workflow" "Pack:--pack" "WithLinter:--with-linter" \
-                      "Force:--force" "List:--list" "Status:--status"; do
+                      "Force:--force" "List:--list" "Status:--status" \
+                      "Project:--project"; do
             ps="${pair%%:*}"; sh="${pair##*:}"
             grep -q -- "\$$ps" install.ps1 || { echo "::warning::install.ps1 에 -$ps 가 없습니다"; miss=1; }
             grep -q -- "$sh"  install.sh  || { echo "::warning::install.sh 에 $sh 가 없습니다"; miss=1; }
           done
           [ "$miss" -eq 0 ] && echo "두 설치기가 같은 옵션을 받습니다"
           exit 0
+
+      - name: 4) 설치기에 리터럴 탭이 없는가
+        run: |
+          set -euo pipefail
+          # 같은 자리에서 두 번 터진 버그다. PowerShell 문자열의 "...\tools" 를
+          # 편집기나 스크립트가 탭으로 저장해 버리면 경로가 조용히 망가진다.
+          #   61099b1     $ToolsDir 기본값의 \t 가 탭이 되어 -WithLinter 가 항상 죽었다
+          #   2026-09-22  -Project 를 넣다가 같은 변수에서 재발했다
+          # 사람이 두 번 놓친 자리는 규칙이 아니라 검사로 막는다.
+          # 두 설치기 모두 들여쓰기에 탭을 쓰지 않으므로, 탭은 전부 사고다.
+          if grep -n "$(printf '\t')" install.ps1 install.sh; then
+            echo "::error::설치기에 리터럴 탭이 있습니다 — 위 줄의 \t 가 탭으로 저장됐습니다. 경로가 조용히 깨집니다."
+            exit 1
+          fi
+          echo "리터럴 탭 없음"

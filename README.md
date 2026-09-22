@@ -56,32 +56,59 @@ agent-harness/
 ```powershell
 # Windows
 .\install.ps1 -List
-.\install.ps1 -Workflow supervisor-worker
-.\install.ps1 -Pack documents,skillcraft
-.\install.ps1 -Workflow supervisor-worker -Pack skillcraft -WithLinter
-.\install.ps1 -Status
+.\install.ps1 -Project . -Workflow supervisor-worker          # 권장
+.\install.ps1 -Project . -Workflow supervisor-worker -Pack documents -WithLinter
+.\install.ps1 -Project . -Status
+.\install.ps1 -Workflow supervisor-worker                     # 전역
 ```
 
 ```bash
 # macOS / Linux
 ./install.sh --list
-./install.sh --workflow supervisor-worker
-./install.sh --pack documents --pack skillcraft
-./install.sh --workflow supervisor-worker --pack skillcraft --with-linter
-./install.sh --status
+./install.sh --project . --workflow supervisor-worker          # 권장
+./install.sh --project . --workflow supervisor-worker --pack documents --with-linter
+./install.sh --project . --status
+./install.sh --workflow supervisor-worker                      # 전역
 ```
 
 **워크플로우와 팩은 함께 줘도 되고, 팩만 줘도 됩니다.** 팩만 고르면 `_core` 는 오지
 않습니다 — 문서 편집만 하려는 사람에게 위임·검수 스킬 17개는 짐입니다.
 
-두 스토어(`~/.claude/skills`, `~/.agents/skills`)에 스킬을 **복사**합니다.
-링크가 아니므로 레포에서 고친 것이 저절로 오지 않습니다 — 그것이 대가입니다.
-대신 설치처에서 무엇을 고쳐도 레포가 오염되지 않습니다.
+### 🔵 `-Project` 를 권장합니다
+
+설치처는 두 가지 중에 고릅니다.
+
+| | 설치처 | 마커·린터 | 쓸 때 |
+|---|---|---|---|
+| **프로젝트** `-Project <path>` | `<path>/.claude/skills` **한 곳** | `<path>/.claude/` 안 | 권장 — 기본으로 이것을 쓰십시오 |
+| 전역 (옵션 없음) | `~/.claude/skills` · `~/.agents/skills` **두 곳** | `~/.agents/skills` · `~/.claude/tools` | 모든 프로젝트에서 쓸 스킬만 |
+
+**왜 프로젝트 쪽이 기본인가.** 설치처는 스킬을 이 일에 맞게 고치는 자리입니다(레포는
+일반화된 것을 담습니다). 전역에 깔면 **그 수정이 모든 프로젝트에 퍼집니다** — A 프로젝트의
+사건 기록을 B 프로젝트의 에이전트가 읽게 됩니다. 정션을 걷어낸 이유가 레포 오염이었는데,
+전역 설치는 같은 문제를 설치처 층에서 되풀이합니다. 프로젝트에 깔면 고친 것이 거기 머뭅니다.
+
+덤으로, 프로젝트에 깔면 **그 폴더만 보고 어떤 하네스로 일했는지 알 수 있습니다.** 전역이면
+기계 상태에 달려 있어, 같은 폴더를 다른 기계에서 열면 스킬이 없습니다.
+
+🔴 **경로는 필수 인자입니다. 기본값이 없습니다.** 현재 폴더에 깔 때도 `-Project .` 로
+명시해야 합니다. 엉뚱한 폴더에 까는 사고는 일어나기는 쉽고 알아채기는 어렵기 때문에,
+어디에 까는지를 매번 손으로 적게 했습니다. 없는 폴더를 주면 **만들지 않고 거부합니다** —
+오타로 빈 폴더가 생기면 깔렸다고 믿은 채 스킬 없는 곳에서 일하게 됩니다.
+
+전역 설치의 마커 위치(`~/.agents/skills`)는 그대로입니다. 이미 깔아 둔 것은 영향받지 않습니다.
+
+### 복사이지 링크가 아니다
+
+스킬을 설치처에 **복사**합니다. 링크가 아니므로 레포에서 고친 것이 저절로 오지
+않습니다 — 그것이 대가입니다. 대신 설치처에서 무엇을 고쳐도 레포가 오염되지 않습니다.
 
 설치기는 명령을 부른 것으로 성공을 세지 않고, **`SKILL.md` 가 실제로 놓였는지 확인한 뒤**
 셉니다. 수가 맞지 않으면 어느 경로가 왜 실패했는지 함께 출력합니다.
 
 ### 이미 설치돼 있으면
+
+위 표의 "설치처"는 `-Project` 를 줬으면 그 프로젝트 폴더 하나, 안 줬으면 전역 두 곳입니다.
 
 | 설치처 상태 | 기본 | `-Force` / `--force` |
 |---|---|---|
