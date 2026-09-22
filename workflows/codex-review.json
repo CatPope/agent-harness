@@ -6,5 +6,6 @@
   "requires": ["openai/codex-plugin-cc"],
   "skills": [],
   "doc": null,
+  "claude": null,
   "note": "아직 구성 전. _core 5종은 역할이 뒤집혀도 그대로 쓰이므로 재사용 대상이다. 검토 주체가 Codex가 되므로 work-review 의 '누가 검증하는가' 전제를 이 워크플로우용으로 다시 볼 것."
 }

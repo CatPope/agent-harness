@@ -96,7 +96,7 @@ jobs:
           miss=0
           for pair in "Workflow:--workflow" "Pack:--pack" "WithLinter:--with-linter" \
                       "Force:--force" "List:--list" "Status:--status" \
-                      "Project:--project"; do
+                      "Project:--project" "Topic:--topic" "WithClaudeMd:--with-claude-md"; do
             ps="${pair%%:*}"; sh="${pair##*:}"
             grep -q -- "\$$ps" install.ps1 || { echo "::warning::install.ps1 에 -$ps 가 없습니다"; miss=1; }
             grep -q -- "$sh"  install.sh  || { echo "::warning::install.sh 에 $sh 가 없습니다"; miss=1; }

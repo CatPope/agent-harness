@@ -15,6 +15,10 @@ Checks:
       manifest (skills/_core is exempt: it installs with every workflow)
   M4  a skills/<group>/ directory has a manifest at workflows/ or packs/
   M5  tools/check_skill.py forwards to a linter that actually exists
+  M6  the CLAUDE.md fragment a manifest points at (its `claude` field) exists
+  M7  every fragment under claude/ is reachable from a manifest
+      (claude/_core.md, claude/topics/*.md and README.md are exempt: _core comes
+      with every workflow and topics are picked with -Topic / --topic)
 
 Standard library only. Run from the repo root:
 
@@ -85,6 +89,49 @@ def main(root):
         else:
             add(OK, "M2", "{}/{}.json: all {} skill(s) present"
                 .format(kind, group, len(listed)))
+
+    # M6 — 매니페스트가 가리키는 CLAUDE.md 조각이 실제로 있는가.
+    # 스킬과 같은 사고가 조각에서도 난다: 가리키기만 하고 파일이 없으면 설치기는
+    # 경고만 하고 지나가므로, 설치처에는 그 규칙이 그냥 없다.
+    referenced = set()
+    for group, (kind, p, data) in sorted(manifests.items()):
+        rel = data.get("claude")
+        if not rel:
+            add(OK, "M6", "{}/{}.json: no CLAUDE.md fragment (optional)"
+                .format(kind, group))
+            continue
+        referenced.add(rel.replace("\\", "/"))
+        if os.path.isfile(os.path.join(root, rel)):
+            add(OK, "M6", "{}/{}.json -> {}".format(kind, group, rel))
+        else:
+            add(FAIL, "M6", "{}/{}.json points at a CLAUDE.md fragment that is "
+                            "not there: {}".format(kind, group, rel))
+
+    # M7 — 반대 방향. claude/ 에 두었는데 아무도 가리키지 않으면 영영 배포되지 않는다.
+    cdir = os.path.join(root, "claude")
+    exempt = set(["claude/_core.md", "claude/README.md"])
+    if os.path.isdir(cdir):
+        orphans = []
+        for sub, _dirs, files in os.walk(cdir):
+            for fn in sorted(files):
+                if not fn.endswith(".md"):
+                    continue
+                rel = os.path.relpath(os.path.join(sub, fn), root)
+                rel = rel.replace("\\", "/")
+                if rel in exempt or rel.endswith("/README.md"):
+                    continue
+                # 토픽은 매니페스트가 아니라 -Topic / --topic 으로 고른다
+                if rel.startswith("claude/topics/"):
+                    continue
+                if rel not in referenced:
+                    orphans.append(rel)
+        if orphans:
+            add(FAIL, "M7", "no manifest points at these CLAUDE.md fragment(s), "
+                            "so they are never installed: {}"
+                .format(", ".join(orphans)))
+        else:
+            add(OK, "M7", "every CLAUDE.md fragment is reachable "
+                          "(_core / topics / README are exempt)")
 
     # M3 / M4 — 디스크에 있는데 아무 매니페스트도 부르지 않는 것
     for group in sorted(os.listdir(skills_dir)):

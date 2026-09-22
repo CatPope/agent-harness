@@ -7,6 +7,7 @@
 #   ./install.sh --workflow supervisor-worker --with-linter
 #   ./install.sh --pack documents --pack skillcraft
 #   ./install.sh --project . --workflow supervisor-worker   <- 권장
+#   ./install.sh --project . --workflow supervisor-worker --topic implementation
 #
 # --project <path>: RECOMMENDED. Installs into that folder's .claude/skills
 # only, instead of the two global stores. The skills then belong to one
@@ -22,6 +23,23 @@
 # Copies, not links. A link makes the install target and this repo the same
 # files, so editing a skill while working on a project rewrites the shared
 # original at once. Installing is one-way: repo -> install target.
+#
+# CLAUDE.md fragments: the chosen workflow, packs and topics also contribute
+# CLAUDE.md fragments (the claude/ folder in this repo). They are assembled in a
+# fixed order - _core, workflow, packs, topics - and written to
+# <base>/harness-CLAUDE.md, which you then reference from your own CLAUDE.md.
+# Your CLAUDE.md is NOT touched unless you pass --with-claude-md, which writes
+# the same text into it inside an idempotent begin/end marker block.
+#
+# What gets assembled is not "the options you gave this time" but "what the
+# markers say is installed". The markers are written first, so this run's
+# options are already in them. Install --pack documents today and --pack
+# skillcraft tomorrow and you get both fragments, because both packs' skills
+# are in fact sitting in the store.
+#
+# --topic <name>: picks claude/topics/<name>.md. Topics contribute a fragment
+# only - they bring no skills - so they are given together with a workflow or a
+# pack, not on their own.
 set -euo pipefail
 # 🔴 --project 의 상대 경로는 사용자가 이 스크립트를 부른 자리를 기준으로 읽어야 한다.
 #    아래 cd 가 기준을 레포로 바꿔 버리므로, 그 전에 붙잡아 둔다.
@@ -37,9 +55,9 @@ TOOLS_DIR_SET=0; [ -n "${CLAUDE_TOOLS_DIR:-}" ] && TOOLS_DIR_SET=1
 DIRS_SET=0
 { [ -n "${CLAUDE_SKILLS_DIR:-}" ] || [ -n "${AGENTS_SKILLS_DIR:-}" ]; } && DIRS_SET=1
 
-WORKFLOW=""; DO_LIST=0; DO_STATUS=0; FORCE=0; WITH_LINTER=0
+WORKFLOW=""; DO_LIST=0; DO_STATUS=0; FORCE=0; WITH_LINTER=0; WITH_CLAUDE_MD=0
 PROJECT=""; PROJECT_GIVEN=0
-PACKS=()
+PACKS=(); TOPICS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --list)     DO_LIST=1 ;;
@@ -50,6 +68,9 @@ while [ $# -gt 0 ]; do
     # 선택 설치. 포터빌리티 린터를 설치처에도 둔다.
     # 없어도 스킬은 정상 동작한다 — 스킬을 고칠 사람만 필요하다.
     --with-linter) WITH_LINTER=1 ;;
+    # 선택. 조립한 CLAUDE.md 조각을 대상 CLAUDE.md 끝의 마커 블록에 직접 반영한다.
+    # 🔴 기본값은 사용자 파일을 건드리지 않는다 -- 별도 파일로 떨구고 참조를 안내만 한다.
+    --with-claude-md) WITH_CLAUDE_MD=1 ;;
     --workflow) shift; WORKFLOW="${1:-}" ;;
     # 권장. 전역 두 스토어 대신 그 폴더의 .claude/skills 한 곳에만 설치한다.
     # 🔴 경로는 필수 — 기본값을 두면 엉뚱한 폴더에 까는 사고가 난다.
@@ -58,6 +79,8 @@ while [ $# -gt 0 ]; do
                 case "$PROJECT" in --*) echo "--project 뒤에 경로가 와야 합니다 (받은 것: $PROJECT)" >&2; exit 2 ;; esac ;;
     # 주제별 묶음. 여러 번 주거나 쉼표로 이어 줄 수 있다.
     --pack)     shift; IFS=, read -r -a _p <<< "${1:-}"; PACKS+=("${_p[@]}") ;;
+    # CLAUDE.md 조각만 고르는 축. 스킬을 끌고 오지 않는다. 여러 번·쉼표 모두 된다.
+    --topic)    shift; IFS=, read -r -a _t <<< "${1:-}"; TOPICS+=("${_t[@]}") ;;
     *) echo "알 수 없는 인자: $1" >&2; exit 2 ;;
   esac
   # 🔴 `|| true` 가 필요하다. 값을 받는 플래그가 맨 끝에 오면(--project 로 끝나는 등)
@@ -83,17 +106,31 @@ if [ "$PROJECT_GIVEN" = 1 ]; then
   PROJECT_ROOT="$(cd "$PROJECT_ROOT" && pwd)"
   STORES=("$PROJECT_ROOT/.claude/skills")
   MARKER_DIR="${STORES[0]}"
+  # 조각 산출물은 .claude/ 안에, 대상 CLAUDE.md 는 프로젝트 루트에 있다.
+  CLAUDE_MD_BASE="$PROJECT_ROOT/.claude"
+  CLAUDE_MD_TARGET="$PROJECT_ROOT/CLAUDE.md"
   [ "$TOOLS_DIR_SET" = 1 ] || TOOLS_DIR="$PROJECT_ROOT/.claude/tools"
 else
   STORES=("$CLAUDE_DIR" "$AGENTS_DIR")
   # 🔴 전역 설치의 마커 위치는 건드리지 않는다. 옮기면 이미 깔려 있는 설치가
   #    --status 에서 "설치 안 됨" 으로 보인다.
   MARKER_DIR="$AGENTS_DIR"
+  # 🔴 전역일 때의 CLAUDE.md 자리는 반드시 CLAUDE_DIR 에서 유도한다. $HOME 을 직접
+  #    박으면 CLAUDE_SKILLS_DIR 로 임시 폴더를 줘도 실제 홈의 CLAUDE.md 를 건드리게
+  #    되어 안전하게 시험할 방법이 없어진다. 기본값 기준으로는 ~/.claude/CLAUDE.md 다.
+  CLAUDE_MD_BASE="$(dirname "$CLAUDE_DIR")"
+  CLAUDE_MD_TARGET="$CLAUDE_MD_BASE/CLAUDE.md"
 fi
+# 조립 결과를 떨구는 자리. 사용자 파일이 아니므로 설치기가 통째로 다시 쓴다.
+FRAGMENT_OUT="$CLAUDE_MD_BASE/harness-CLAUDE.md"
 # 설치처가 하나일 수도 둘일 수도 있어, 보여 줄 때만 한 줄로 잇는다
 stores_str () { printf '%s / ' "${STORES[@]}" | sed 's| / $||'; }
 MARKER="$MARKER_DIR/.agent-harness-active"
 PACK_MARKER="$MARKER_DIR/.agent-harness-packs"
+# 토픽 마커. 팩 마커와 같은 자리·같은 형식·같은 병합 규칙이다.
+# 조립이 "무엇이 깔려 있는가"를 마커에서 읽으므로, 스킬을 끌고 오지 않는 토픽도
+# 기록이 남아야 다음 설치에서 살아남는다. CLI 옵션이 아니라 내부 상태다.
+TOPIC_MARKER="$MARKER_DIR/.agent-harness-topics"
 
 PY="${PYTHON:-python3}"
 command -v "$PY" >/dev/null 2>&1 || PY=python
@@ -137,6 +174,154 @@ skill_delta () {  # skill_delta <레포 원본> <설치된 것>
   DELTA="$bits  ($names)"
 }
 
+# 조립 순서대로 쌓는다: _core -> 워크플로우 -> 팩(고른 순) -> 토픽(고른 순)
+FRAGMENTS=()
+
+# 매니페스트가 조각을 가리키지 않아도, 가리킨 파일이 없어도 설치는 계속된다.
+# 레포 쪽 어긋남은 CI(tools/check_manifests.py 의 M6·M7)가 잡을 일이지
+# 설치를 막을 일이 아니다.
+add_fragment () {  # add_fragment <레포 기준 상대경로>
+  [ -n "${1:-}" ] || return 0
+  if [ -f "$ROOT/$1" ]; then
+    FRAGMENTS+=("$1")
+  else
+    echo "경고: CLAUDE.md 조각을 찾지 못해 건너뜁니다: $1" >&2
+  fi
+}
+
+# 조각의 첫 제목 줄. --list 에서 한 줄 설명으로 쓴다.
+fragment_title () { sed -n 's/^#\{1,\}[[:space:]]*//p' "$1" | head -1; }
+
+# 마커 파일을 읽어 항목을 한 줄에 하나씩 낸다. 쉼표·공백은 털어낸다.
+# 🔴 앞의 BOM 을 떼어낸다. 옛 버전의 PowerShell 설치기가 BOM 을 붙여 쓴 마커가
+#    남아 있을 수 있고, 그대로 읽으면 첫 항목이 "<BOM>documents" 가 되어
+#    매니페스트도 조각도 못 찾는다. 표시가 깨지는 것이 아니라 규칙이 안 깔린다.
+read_marker_list () {  # read_marker_list <마커 파일>
+  [ -f "$1" ] || return 0
+  local raw bom
+  # printf 의 8진 이스케이프는 어디서나 된다. sed 의 16진 이스케이프는 BSD sed 에 없다.
+  bom="$(printf '\357\273\277')"
+  raw="$(cat "$1")"
+  raw="${raw#$bom}"
+  printf '%s\n' "$raw" | tr ',' '\n' \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' || true
+}
+
+# 이번에 준 것과 마커에 있던 것을 합쳐 다시 쓴다 — 쉼표+공백, 중복 제거, 정렬.
+# 🔴 LC_ALL=C 로 정렬한다. PowerShell 쪽은 Ordinal 로 정렬하므로, 여기서 로캘 정렬을
+#    쓰면 하이픈이 든 id 에서 두 설치기의 순서가 갈리고 조립 결과가 바이트로 달라진다.
+# 🔴 BOM 없이, 끝의 줄바꿈 없이 쓴다 — PowerShell 쪽 Write-Utf8NoBom 과 같은 바이트로.
+write_marker_list () {  # write_marker_list <마커 파일> <id...>
+  local marker="$1"; shift
+  local merged
+  # 🔴 읽기를 먼저 끝내 변수에 담는다. 파이프라인 끝에서 바로 리다이렉트하면
+  #    마커가 읽히기 전에 잘려 나가 전에 깔아 둔 기록이 통째로 사라진다.
+  merged="$( { read_marker_list "$marker"; printf '%s\n' "$@"; } \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | grep -v '^$' \
+    | LC_ALL=C sort -u | paste -sd',' - | sed 's/,/, /g' )"
+  printf '%s' "$merged" > "$marker"
+}
+
+# 무엇을 조립할지는 **마커가** 정한다 — 이번에 준 옵션이 아니다.
+#
+# 🔴 옵션만 보면 설치처 상태와 배포된 규칙이 어긋난다. `--pack documents` 로 깔고
+#    다음에 `--pack skillcraft` 로 깔면 documents 스킬은 폴더에 그대로 있는데
+#    그 규칙만 조용히 사라졌다. 마커는 누적되는데 조각은 누적되지 않았기 때문이다.
+#    그래서 조립의 근거를 "무엇이 깔려 있는가"(=마커)로 옮긴다.
+# 마커는 이 함수를 부르기 전에 이미 갱신돼 있다. 이번에 준 것도 그래서 여기 들어 있다.
+#
+# 마커에 있는데 레포에 매니페스트나 조각이 없으면 경고 한 줄을 내고 그것만 건너뛴다.
+# 설치를 실패시키지 않는다 — 조각 하나 때문에 스킬 설치까지 막을 일은 아니다.
+collect_fragments () {
+  local wfid mf id
+  if [ -f "$MARKER" ]; then
+    wfid="$(read_marker_list "$MARKER")"
+    # _core 조각은 _core 스킬과 같은 규칙이다 — 워크플로우가 깔려 있을 때만 따라온다.
+    # 팩만 깐 설치처에는 붙지 않는다. 없는 스킬을 가리키는 규칙을 남기지 않는다.
+    add_fragment "claude/_core.md"
+    if [ -n "$wfid" ]; then
+      mf="workflows/$wfid.json"
+      if [ -f "$ROOT/$mf" ]; then
+        add_fragment "$(field "$mf" claude)"
+      else
+        echo "경고: 마커의 워크플로우 매니페스트가 없어 조각을 건너뜁니다: $mf" >&2
+      fi
+    fi
+  fi
+  # 팩·토픽은 마커에 적힌 순서(정렬된 순서) 그대로 붙인다.
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    mf="packs/$id.json"
+    if [ -f "$ROOT/$mf" ]; then
+      # claude 필드가 없으면 빈 문자열이 와서 조용히 건너뛴다 — 조각은 선택이다.
+      add_fragment "$(field "$mf" claude)"
+    else
+      echo "경고: 마커의 팩 매니페스트가 없어 조각을 건너뜁니다: $mf" >&2
+    fi
+  done <<EOF
+$(read_marker_list "$PACK_MARKER")
+EOF
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    # 토픽은 매니페스트가 없다 — 파일명이 곧 id 다. 없으면 add_fragment 가 경고한다.
+    add_fragment "claude/topics/$id.md"
+  done <<EOF
+$(read_marker_list "$TOPIC_MARKER")
+EOF
+}
+
+# 조각을 정해진 순서로 이어 표준출력에 낸다. 각 조각 앞에 출처 한 줄을 남겨,
+# 나중에 이 파일만 보고도 어느 파일에서 온 규칙인지 알 수 있게 한다.
+build_claude_md () {
+  echo "<!-- agent-harness 가 조립한 CLAUDE.md 조각입니다. 여기서 고치지 마십시오. -->"
+  echo "<!-- 고칠 곳은 <harness_repo>/claude/ 이고, 설치기를 다시 돌리면 통째로 다시 쓰입니다. -->"
+  for rel in "${FRAGMENTS[@]}"; do
+    printf '\n<!-- from: %s -->\n' "$rel"
+    # $(...) 가 끝의 빈 줄을 떨어뜨린다 -- 조각 사이 간격을 일정하게 맞추려는 것이다.
+    printf '%s\n' "$(sed 's/\r$//' "$ROOT/$rel")"
+  done
+}
+
+# 대상 CLAUDE.md 에 마커 블록으로 반영한다. 무엇을 했는지 한 마디를 출력한다.
+#
+# 🔴 멱등이어야 한다. 두 번 돌리면 블록이 교체되지 쌓이면 안 된다.
+# 🔴 블록 바깥은 한 글자도 바꾸지 않는다. BOM 이 있던 파일은 BOM 째로 돌려 놓는다 --
+#    없애 버리는 것도 사용자 파일을 고친 것이다.
+merge_claude_md () {  # merge_claude_md <대상 CLAUDE.md> <조립 결과 파일>
+  PYTHONIOENCODING=utf-8 "$PY" - "$1" "$2" <<'PYEOF'
+import io, os, sys
+target, src = sys.argv[1], sys.argv[2]
+BEGIN, END = "<!-- agent-harness:begin -->", "<!-- agent-harness:end -->"
+body = io.open(src, "rb").read().decode("utf-8")
+block = BEGIN + "\n" + body + END + "\n"
+had_bom = False
+old = None
+if os.path.exists(target):
+    raw = io.open(target, "rb").read()
+    if raw[:3] == b"\xef\xbb\xbf":
+        had_bom = True
+        raw = raw[3:]
+    old = raw.decode("utf-8")
+if old is None:
+    new, how = block, "새로 만듦"
+else:
+    s = old.find(BEGIN)
+    e = old.find(END, s) if s >= 0 else -1
+    if s >= 0 and e > s:
+        new = old[:s] + block.rstrip("\n") + old[e + len(END):]
+        how = "블록 교체"
+    else:
+        sep = "\n" if old.endswith("\n") else "\n\n"
+        new = old + sep + block
+        how = "끝에 덧붙임"
+out = new.encode("utf-8")
+if had_bom:
+    out = b"\xef\xbb\xbf" + out
+io.open(target, "wb").write(out)
+sys.stdout.write(how)
+PYEOF
+}
+
 if [ "$DO_LIST" = 1 ]; then
   echo; echo "워크플로우 — _core 공통 스킬과 함께 설치됩니다"; echo
   for f in workflows/*.json; do
@@ -149,8 +334,19 @@ if [ "$DO_LIST" = 1 ]; then
     printf "  %-20s [%s] %s\n" "$(field "$f" id)" "$(field "$f" status)" "$(field "$f" name)"
     printf "  %-20s   %s\n\n" "" "$(field "$f" summary)"
   done
+  if [ -d claude/topics ]; then
+    echo "토픽 — CLAUDE.md 조각만 기여합니다. 스킬은 오지 않습니다"; echo
+    for f in claude/topics/*.md; do
+      [ -e "$f" ] || continue
+      case "$f" in */README.md) continue ;; esac
+      b="$(basename "$f" .md)"
+      printf "  %-20s %s\n" "$b" "$(fragment_title "$f")"
+    done
+    echo
+  fi
   echo "설치:  ./install.sh --workflow <id>"
-  echo "       ./install.sh --pack <id> [--pack <id>]"; echo
+  echo "       ./install.sh --pack <id> [--pack <id>]"
+  echo "       ./install.sh --workflow <id> --topic <name>"; echo
   echo "권장 — 프로젝트 한 곳에만:"
   echo "       ./install.sh --project <path> --workflow <id>"
   echo "       그 폴더의 .claude/skills 에만 깔립니다. 거기서 고친 스킬이"
@@ -165,15 +361,18 @@ if [ "$DO_STATUS" = 1 ]; then
   else echo "활성 워크플로우 없음 (아직 설치하지 않았습니다)"; fi
   if [ -f "$PACK_MARKER" ]; then echo "설치한 팩: $(cat "$PACK_MARKER")"
   else echo "설치한 팩 없음"; fi
+  if [ -f "$TOPIC_MARKER" ]; then echo "설치한 토픽: $(cat "$TOPIC_MARKER")"
+  else echo "설치한 토픽 없음"; fi
   exit 0
 fi
 
 if [ -z "$WORKFLOW" ] && [ "${#PACKS[@]}" -eq 0 ]; then
   echo "--workflow <id> 또는 --pack <id> 를 지정하거나, --list 로 목록을 보세요." >&2
+  echo "(--topic 은 조각만 기여하므로 단독으로 쓸 수 없습니다)" >&2
   exit 2
 fi
 
-TARGETS=(); CHOSEN=()
+TARGETS=(); CHOSEN=(); TOPIC_IDS=()
 
 # 워크플로우를 고르면 _core 공통 스킬이 함께 온다.
 if [ -n "$WORKFLOW" ]; then
@@ -188,6 +387,7 @@ if [ -n "$WORKFLOW" ]; then
     TARGETS+=("$p")
   done
   CHOSEN+=("$(field "$MF" name)")
+  # 🔴 조각은 여기서 고르지 않는다. 마커를 쓴 뒤 collect_fragments 가 마커를 보고 고른다.
 fi
 
 # 팩은 자기 스킬만 가져온다. _core 를 끌고 오지 않는다.
@@ -205,6 +405,16 @@ for pk in "${PACKS[@]:-}"; do
   done
   PACK_IDS+=("$pk")
   CHOSEN+=("$(field "$PF" name)")
+done
+
+# 토픽은 조각만 기여한다 -- 스킬을 가져오지 않는다.
+# 🔴 없는 이름은 거부한다. 오타를 조용히 넘기면 붙은 줄 알고 일하게 된다.
+for tp in "${TOPICS[@]:-}"; do
+  [ -n "$tp" ] || continue
+  TF="claude/topics/$tp.md"
+  [ -f "$ROOT/$TF" ] || { echo "알 수 없는 토픽: $tp  ($TF 가 없습니다. --list 로 확인)" >&2; exit 2; }
+  TOPIC_IDS+=("$tp")
+  CHOSEN+=("토픽: $tp")
 done
 
 mkdir -p "${STORES[@]}"
@@ -260,14 +470,17 @@ done
 # 스킬은 이미 놓였다. 뒤에 적으면 그 실패가 설치 기록까지 지워 --status 가
 # "설치하지 않았습니다" 라고 거짓말을 한다.
 [ -n "$WORKFLOW" ] && printf '%s' "$WORKFLOW" > "$MARKER"
+# 이번에 설치한 것만 적지 않는다 — 전에 깔아 둔 것이 지워진 것처럼 보이므로 합친다.
 if [ "${#PACK_IDS[@]}" -gt 0 ]; then
-  # 이번에 설치한 것만 적지 않는다 — 전에 깔아 둔 팩이 지워진 것처럼 보이므로 합친다.
-  prev=""
-  [ -f "$PACK_MARKER" ] && prev="$(cat "$PACK_MARKER")"
-  printf '%s\n' "$prev" "${PACK_IDS[@]}" \
-    | tr ',' '\n' | sed 's/^ *//; s/ *$//' | grep -v '^$' | sort -u \
-    | paste -sd',' - | sed 's/,/, /g' > "$PACK_MARKER"
+  write_marker_list "$PACK_MARKER" "${PACK_IDS[@]}"
 fi
+if [ "${#TOPIC_IDS[@]}" -gt 0 ]; then
+  write_marker_list "$TOPIC_MARKER" "${TOPIC_IDS[@]}"
+fi
+
+# 🔴 조립은 반드시 여기, 마커를 다 쓴 뒤다. 근거는 "이번에 준 옵션"이 아니라
+#    "마커에 기록된 설치 상태"이므로, 마커가 최신이 아니면 조립도 틀린다.
+collect_fragments
 
 # 린터는 선택 설치다. 스킬과 달리 설치처에서 고칠 것이 아니라 그대로 쓰는
 # 도구이므로, 이미 있으면 말없이 최신본으로 덮어쓴다.
@@ -282,6 +495,25 @@ if [ "$WITH_LINTER" = 1 ]; then
     echo "린터 설치: $TOOLS_DIR/check_skill.py"
   else
     failed+=("$TOOLS_DIR/check_skill.py  (린터 복사 실패)")
+  fi
+fi
+
+# CLAUDE.md 조각 -- 스킬·린터와 달리 사용자가 읽는 파일 쪽 산출물이다.
+# 🔴 기본은 사용자 파일을 건드리지 않는다. 별도 파일로 떨구고 참조를 안내할 뿐이며,
+#    대상 CLAUDE.md 에 직접 넣는 것은 --with-claude-md 를 줬을 때뿐이다.
+if [ "${#FRAGMENTS[@]}" -gt 0 ]; then
+  mkdir -p "$CLAUDE_MD_BASE"
+  build_claude_md > "$FRAGMENT_OUT"
+  echo
+  echo "CLAUDE.md 조각: $FRAGMENT_OUT  (조각 ${#FRAGMENTS[@]}장)"
+  for fr in "${FRAGMENTS[@]}"; do echo "    $fr"; done
+  if [ "$WITH_CLAUDE_MD" = 1 ]; then
+    HOW="$(merge_claude_md "$CLAUDE_MD_TARGET" "$FRAGMENT_OUT")"
+    echo "  반영: $CLAUDE_MD_TARGET  ($HOW)"
+  else
+    echo "  이 파일은 설치기가 다시 씁니다 — 고칠 곳은 <harness_repo>/claude/ 입니다."
+    echo "  당신의 CLAUDE.md 에서 이 파일을 참조하십시오: $CLAUDE_MD_TARGET"
+    echo "  --with-claude-md 를 주면 그 CLAUDE.md 의 마커 블록에 직접 반영합니다."
   fi
 fi
 

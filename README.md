@@ -22,7 +22,11 @@
 agent-harness/
   workflows/          워크플로우 매니페스트 (어떤 스킬을 묶을지)
   packs/              팩 매니페스트 (주제별 묶음)
-  claude/             CLAUDE.md 조각
+  claude/             CLAUDE.md 조각. 설치기가 조립해 설치처에 떨군다
+    _core.md            워크플로우를 고르면 항상 따라온다
+    workflows/<id>.md   그 워크플로우를 고르면 따라온다
+    packs/<id>.md       그 팩을 고르면 따라온다
+    topics/<name>.md    -Topic / --topic 으로 따로 고른다
   skills/
     _core/            워크플로우를 고르면 항상 함께 오는 공통 스킬
     <workflow-id>/    해당 워크플로우에서만 설치되는 고유 스킬
@@ -58,6 +62,7 @@ agent-harness/
 .\install.ps1 -List
 .\install.ps1 -Project . -Workflow supervisor-worker          # 권장
 .\install.ps1 -Project . -Workflow supervisor-worker -Pack documents -WithLinter
+.\install.ps1 -Project . -Workflow supervisor-worker -Topic implementation
 .\install.ps1 -Project . -Status
 .\install.ps1 -Workflow supervisor-worker                     # 전역
 ```
@@ -67,12 +72,51 @@ agent-harness/
 ./install.sh --list
 ./install.sh --project . --workflow supervisor-worker          # 권장
 ./install.sh --project . --workflow supervisor-worker --pack documents --with-linter
+./install.sh --project . --workflow supervisor-worker --topic implementation
 ./install.sh --project . --status
 ./install.sh --workflow supervisor-worker                      # 전역
 ```
 
 **워크플로우와 팩은 함께 줘도 되고, 팩만 줘도 됩니다.** 팩만 고르면 `_core` 는 오지
 않습니다 — 문서 편집만 하려는 사람에게 위임·검수 스킬 17개는 짐입니다.
+
+### `CLAUDE.md` 조각도 함께 깔립니다
+
+**하네스는 스킬만이 아닙니다.** 스킬은 불러야 열리고 매니페스트는 설치기만 읽으므로,
+워크플로우가 전제하는 규칙(예: "코드 구현은 Codex 에 위임한다")이 **세션 시작에 자동으로
+읽히는 파일 어디에도 없는** 상태가 됩니다. 그래서 고른 워크플로우·팩·토픽의 `CLAUDE.md`
+조각을 함께 나릅니다. 조각의 축과 규약은 `claude/README.md` 에 있습니다.
+
+조립 순서는 **`_core` → 워크플로우 → 팩(고른 순) → 토픽(고른 순)** 으로 고정이고,
+각 조각 앞에 `<!-- from: claude/... -->` 한 줄이 붙어 출처가 보입니다.
+
+| | 산출물 (기본) | 대상 `CLAUDE.md` (`-WithClaudeMd` 일 때만) |
+|---|---|---|
+| **프로젝트** `-Project <path>` | `<path>/.claude/harness-CLAUDE.md` | `<path>/CLAUDE.md` |
+| 전역 (옵션 없음) | `~/.claude/harness-CLAUDE.md` | `~/.claude/CLAUDE.md` |
+
+🔴 **기본값은 당신의 `CLAUDE.md` 를 건드리지 않습니다.** 별도 파일을 떨구고 "이 파일을
+참조하십시오" 라고 안내만 합니다. 직접 이어붙이는 것은 **`-WithClaudeMd` / `--with-claude-md`
+를 줬을 때뿐**이며, 그때도 마커 블록 안에만 씁니다.
+
+```
+<!-- agent-harness:begin -->
+...조립된 내용...
+<!-- agent-harness:end -->
+```
+
+- **멱등입니다.** 두 번 실행하면 블록이 **교체**되지 쌓이지 않습니다.
+- **블록 바깥은 한 글자도 바뀌지 않습니다.** BOM 이 있던 파일은 BOM 째로 돌려 놓습니다.
+- 마커가 없는 파일이면 끝에 새로 붙이고, 파일이 아예 없으면 새로 만듭니다.
+- 전역일 때의 자리는 **설치처 인자에서 유도합니다** — `-ClaudeDir` / `CLAUDE_SKILLS_DIR`
+  을 바꾸면 조각의 자리도 함께 옮겨 갑니다. 그래서 실제 홈을 건드리지 않고 시험할 수 있습니다.
+
+**토픽(`-Topic` / `--topic`)은 조각만 기여합니다 — 스킬은 오지 않습니다.** 워크플로우·팩과
+무관한 축이라 따로 고르며, 단독으로는 쓸 수 없습니다(설치할 스킬이 없으므로).
+조립의 근거는 **그때 준 옵션이 아니라 마커에 기록된 설치 상태**입니다 — 토픽도 팩과 같은
+자리에 자기 마커(`.agent-harness-topics`)를 두고 누적됩니다. `-Pack documents` 로 깔고
+다음에 `-Topic implementation` 만 주더라도, documents 조각은 마커에 남아 있으므로 결과에서
+사라지지 않습니다. `-Status` / `--status` 가 설치한 토픽도 함께 보여줍니다.
 
 ### 🔵 `-Project` 를 권장합니다
 
@@ -277,6 +321,8 @@ python tools/check_manifests.py
 | M3 | `skills/<묶음>/` 의 폴더가 전부 매니페스트에 올라 있는가 (`_core` 는 면제) |
 | M4 | `skills/<묶음>/` 에 대응하는 매니페스트가 있는가 |
 | M5 | 린터 런처가 가리키는 정본이 실제로 있는가 |
+| M6 | 매니페스트의 `claude` 필드가 가리키는 조각이 실제로 있는가 |
+| M7 | `claude/` 의 조각이 어느 매니페스트에도 안 걸려 있지는 않은가 (`_core.md` · `topics/` · README 면제) |
 
 ## CI
 
