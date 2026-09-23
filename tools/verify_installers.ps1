@@ -1,5 +1,12 @@
 $ErrorActionPreference = "Stop"
 
+# 🔴 bash 는 UTF-8 로 출력하고, PowerShell 은 그것을 콘솔 코드페이지(한국어 Windows 는 cp949)로
+#    디코드한다. 그러면 "복사 2개" 가 깨진 채 비교돼 sh 쪽 단정이 전부 실패한다 — 코드페이지가
+#    다른 콘솔에서는 통과하므로(2026-09-22 Codex 실행) 환경에 따라 결과가 갈리는 테스트였다.
+#    디코딩을 여기서 고정해 어느 콘솔에서든 같은 결과가 나오게 한다.
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$OutputEncoding = [Text.Encoding]::UTF8
+
 $root = if ($PSScriptRoot) { Split-Path $PSScriptRoot -Parent } else { (Get-Location).Path }
 Set-Location $root
 
