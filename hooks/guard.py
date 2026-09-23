@@ -171,6 +171,23 @@ def _check_global_claude_md(cmd):
     return None
 
 
+# ---- R4 Codex 를 안 부르는 "Codex" 서브에이전트 --------------------------------
+# codex:codex-rescue 는 Claude Sonnet 래퍼다. 역할은 요청을 codex-companion 으로 한 번 넘기는
+# 것뿐인데, 상세한 지시서를 주면 전달 대신 자기가 수행한다. 한 세션에서 세 번 다 그랬고
+# codex-companion 호출은 0건이었다(2026-09-22 실측). Codex 위임은 codex-delegate 스킬로만 한다.
+_BLOCKED_AGENT_PREFIXES = ('codex:',)
+
+
+def check_agent(subagent_type):
+    if not subagent_type:
+        return None
+    if subagent_type.lower().startswith(_BLOCKED_AGENT_PREFIXES):
+        return ('R4 codex:* 서브에이전트 금지 — {} 는 Codex 가 아니라 Claude 래퍼이고, 실제로 Codex 를 '
+                '부르지 않은 채 자기가 일합니다(실측 3/3). Codex 위임은 codex-delegate 스킬'
+                '(codex_task.py start/send/status/report)로만 하십시오.').format(subagent_type)
+    return None
+
+
 def check(tool_name, command):
     """막을 이유가 있으면 'R1 ...' 꼴 문자열, 없으면 None."""
     if not command:
@@ -196,10 +213,13 @@ def main():
         sys.stderr.write('[agent-harness guard] input not parsed, passing through: {}\n'.format(e))
         return 0
     tool = data.get('tool_name', '')
-    if tool not in ('Bash', 'PowerShell'):
+    tool_input = data.get('tool_input') or {}
+    if tool == 'Agent':
+        reason = check_agent(tool_input.get('subagent_type', ''))
+    elif tool in ('Bash', 'PowerShell'):
+        reason = check(tool, tool_input.get('command', ''))
+    else:
         return 0
-    command = (data.get('tool_input') or {}).get('command', '')
-    reason = check(tool, command)
     if reason is None:
         return 0
     out = {

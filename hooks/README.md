@@ -23,8 +23,15 @@ R2  전역 설치 금지      install.sh / install.ps1 을 -Project 없이 "실�
                        설치처를 -ClaudeDir / CLAUDE_SKILLS_DIR 로 돌려 놓았으면 허용 (시험용 길).
                        cat / bash -n / grep 같은 "언급" 은 실행이 아니다
 R3  전역 CLAUDE.md 보호  ~/.claude/CLAUDE.md 에 셸로 쓰면 막는다 (>, cp, Set-Content …).
+                       리다이렉트가 그 경로를 직접 가리키거나 세그먼트 첫 낱말이 쓰기 동사일 때만 —
+                       명령 어딘가의 '>' 한 글자는 증거가 아니다 (커밋 메시지를 막은 적이 있다).
                        프로젝트 루트의 CLAUDE.md 와 harness-CLAUDE.md 는 대상이 아니다
+R4  codex:* 서브에이전트 금지  Agent 도구의 subagent_type 이 codex: 로 시작하면 막는다.
+                       codex:codex-rescue 는 Codex 가 아니라 Claude 래퍼이고, 실측 3/3 회
+                       Codex 를 부르지 않은 채 자기가 일했다. Codex 위임은 codex-delegate 스킬로만
 ```
+
+훅 매처는 `Bash|PowerShell|Agent` 다. R1~R3 는 명령 문자열을, R4 는 `subagent_type` 을 본다.
 
 **오탐이 미탐보다 위험하다.** 가드가 멀쩡한 명령을 막기 시작하면 사람이 훅을 꺼 버리고,
 그러면 아무것도 안 막힌다. 그래서 판단이 안 되면 통과시키고, 테스트의 절반이 "통과해야 하는 것"이다.

@@ -90,6 +90,17 @@ CASES = [
     ("Write", r"rm -rf /", False, None),
 ]
 
+# R4: Agent 도구 — (subagent_type, 막혀야 하는가)
+AGENT_CASES = [
+    ("codex:codex-rescue", True),
+    ("codex:rescue", True),
+    ("Codex:Codex-Rescue", True),
+    ("oh-my-claudecode:executor", False),
+    ("oh-my-claudecode:code-reviewer", False),
+    ("general-purpose", False),
+    ("", False),
+]
+
 
 def run_subprocess(tool, command):
     """실제 훅 호출 경로(stdin JSON → stdout JSON)로도 검증한다."""
@@ -118,6 +129,13 @@ def main():
             continue
         if should_block and rule and not reason.startswith(rule):
             fails.append(("rule", tool, cmd, rule, reason))
+    for sub_type, should_block in AGENT_CASES:
+        reason = guard.check_agent(sub_type)
+        if (reason is not None) != should_block:
+            fails.append(("check_agent()", "Agent", sub_type, "block" if should_block else "pass", reason))
+        elif should_block and not reason.startswith("R4"):
+            fails.append(("rule", "Agent", sub_type, "R4", reason))
+
     # 서브프로세스 경로: 대표 케이스만 (전부 돌리면 느리다)
     sub = [
         ("Bash", r"rm -rf /tmp/x", True),
@@ -131,6 +149,15 @@ def main():
             fails.append(("subprocess", tool, cmd, should_block, r))
         elif (r is not None) != should_block:
             fails.append(("subprocess", tool, cmd, should_block, r))
+    # Agent 도구는 stdin 모양이 다르다(subagent_type). 실제 경로로 한 번 본다.
+    for sub_type, should_block in [("codex:codex-rescue", True), ("oh-my-claudecode:executor", False)]:
+        payload = json.dumps({"tool_name": "Agent", "tool_input": {"subagent_type": sub_type, "prompt": "x"}})
+        env = {k: v for k, v in os.environ.items() if k not in ("PYTHONIOENCODING", "PYTHONUTF8")}
+        p = subprocess.run([sys.executable, os.path.join(HERE, "guard.py")],
+                           input=payload.encode("utf-8"), capture_output=True, env=env)
+        blocked = p.returncode == 0 and bool(p.stdout.strip())
+        if p.returncode != 0 or blocked != should_block:
+            fails.append(("subprocess", "Agent", sub_type, should_block, p.stdout[:80], p.stderr[:80]))
 
     # 탭 검사: 이 파일과 guard.py 에 리터럴 탭이 없어야 한다 (\t 접힘 사고 감시)
     for fn in ("guard.py", "test_guard.py"):
@@ -138,7 +165,7 @@ def main():
             if b"\t" in f.read():
                 fails.append(("literal-tab", fn, "", "", ""))
 
-    total = len(CASES) + len(sub)
+    total = len(CASES) + len(AGENT_CASES) + len(sub) + 2
     if fails:
         print("FAIL {}/{}".format(len(fails), total))
         for f in fails:
