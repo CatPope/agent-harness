@@ -86,6 +86,12 @@ CASES = [
     ("Bash", r"grep -c begin ~/.claude/CLAUDE.md", False, None),
     ("Bash", r"cat ~/.claude/harness-CLAUDE.md > x", False, None),
     ("Bash", r"echo x >> ~/.claude/CLAUDE.md.bak", False, None),
+    # ---- 히어독 본문은 명령이 아니다 — 커밋 메시지가 R2·R1 에 걸려 커밋을 막았던 케이스
+    ("Bash", "git commit -F - <<'MSG'\ninstall.ps1 Get-DirFingerprint 를 고친다\nrm 은 막힌다고 적는다\nMSG", False, None),
+    ("Bash", "cat > note.txt <<EOF\n./install.sh --workflow x 를 돌리지 마라\nEOF", False, None),
+    ("Bash", "cat <<EOF\nrm -rf /\nEOF\nrm x", True, "R1"),                      # 종료자 뒤는 다시 명령
+    ("Bash", "python - <<'PY'\nprint('rm')\nPY\n./install.sh --workflow x", True, "R2"),
+    ("Bash", "rm x <<EOF\nbody\nEOF", True, "R1"),                               # 히어독 앞의 명령은 명령
     # ---- 다른 도구는 무시
     ("Write", r"rm -rf /", False, None),
 ]
@@ -104,7 +110,7 @@ AGENT_CASES = [
 
 def run_subprocess(tool, command):
     """실제 훅 호출 경로(stdin JSON → stdout JSON)로도 검증한다."""
-    payload = json.dumps({"tool_name": tool, "tool_input": {"command": command}})
+    payload = json.dumps({"tool_name": tool, "tool_input": {"command": command}}, ensure_ascii=False)
     # 🔴 훅 런타임과 같은 환경으로 돌린다. 테스트를 PYTHONIOENCODING=utf-8 로 띄우면 그것이
     #    자식에 새어 들어가, 실제 훅에서는 죽는 cp949 인코딩 오류를 테스트가 못 본다 (실측).
     env = {k: v for k, v in os.environ.items()
@@ -142,6 +148,9 @@ def main():
         ("Bash", r"ls", False),
         ("PowerShell", r".\install.ps1 -Workflow supervisor-worker", True),
         ("Write", r"rm -rf /", False),
+        # 한글이 든 명령 — stdin 을 텍스트로 읽으면 cp949 디코드로 깨진다. 바이트로 읽어야 한다.
+        ("Bash", r"echo '한글 경로 시험' && rm 파일.txt", True),
+        ("Bash", r"grep -n '삭제 금지' README.md", False),
     ]
     for tool, cmd, should_block in sub:
         r = run_subprocess(tool, cmd)

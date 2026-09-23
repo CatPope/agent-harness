@@ -161,12 +161,15 @@ function Test-Ignorable($rel, $leaf) {
 
 function Get-DirFingerprint($dir) {
   $map = @{}
-  if (-not (Test-Path $dir)) { return $map }
-  $base = (Resolve-Path $dir).Path.TrimEnd('\')
-  Get-ChildItem $dir -Recurse -File -Force | ForEach-Object {
-    $rel = $_.FullName.Substring($base.Length).TrimStart('\')
-    if (Test-Ignorable $rel $_.Name) { return }
-    $map[$rel] = (Get-FileHash $_.FullName -Algorithm MD5).Hash
+  if (-not (Test-Path -LiteralPath $dir)) { return $map }
+  # -Name 은 이 폴더 기준 상대경로를 바로 돌려준다. 예전처럼 FullName 에서 $base 길이만큼
+  # 잘라내면, $base 가 8.3 짧은 이름(C:\Users\RUNNER~1\...)이고 FullName 이 긴 이름일 때
+  # 상대경로가 어긋나 멀쩡한 설치처가 전부 "변경됨" 으로 잡힌다 — windows CI 러너에서 실측.
+  Get-ChildItem -LiteralPath $dir -Recurse -File -Force -Name | ForEach-Object {
+    $rel  = $_
+    $leaf = Split-Path $rel -Leaf
+    if (Test-Ignorable $rel $leaf) { return }
+    $map[$rel] = (Get-FileHash -LiteralPath (Join-Path $dir $rel) -Algorithm MD5).Hash
   }
   return $map
 }

@@ -31,18 +31,38 @@ import re
 import sys
 
 # 명령을 세그먼트로 가른다: ; & | 줄바꿈. 각 세그먼트의 첫 낱말이 "무엇을 실행하는가"다.
-_SEG_SPLIT = re.compile(r'[;&|]+|\r?\n')
+_SEG_SPLIT = re.compile(r'[;&|]+')
 _TOKEN = re.compile(r'"[^"]*"|\'[^\']*\'|\S+')
 _ENV_ASSIGN = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*=')
+# 히어독 시작: <<EOF, <<'EOF', <<"EOF", <<-EOF. 본문은 명령이 아니라 데이터다.
+_HEREDOC_OPEN = re.compile(r'<<-?\s*["\']?([A-Za-z_][A-Za-z0-9_]*)["\']?')
+
+
+def _command_lines(cmd):
+    """히어독 본문을 뺀 줄만 낸다. 커밋 메시지 안의 'install.ps1 …' 이나 'rm …' 이
+    명령으로 잡혀 커밋을 막은 적이 있다(2026-09-23 실측, 두 번)."""
+    terminator = None
+    for line in cmd.replace('\r\n', '\n').split('\n'):
+        if terminator is not None:
+            if line.strip() == terminator:
+                terminator = None
+            continue
+        m = _HEREDOC_OPEN.search(line)
+        if m:
+            terminator = m.group(1)
+            yield line[:m.start()]
+            continue
+        yield line
 
 
 def _segments(cmd):
-    for seg in _SEG_SPLIT.split(cmd):
-        seg = seg.strip()
-        while seg.startswith('('):
-            seg = seg[1:].strip()
-        if seg:
-            yield seg
+    for line in _command_lines(cmd):
+        for seg in _SEG_SPLIT.split(line):
+            seg = seg.strip()
+            while seg.startswith('('):
+                seg = seg[1:].strip()
+            if seg:
+                yield seg
 
 
 def _words(seg):
@@ -204,9 +224,16 @@ def check(tool_name, command):
     return None
 
 
+def read_stdin_json():
+    """stdin 을 바이트로 읽어 UTF-8 로 푼다. 텍스트 모드로 읽으면 Windows 훅 런타임이
+    cp949 로 디코드해 한글 명령이 서로게이트로 들어온다(skill_usage.py 에서 2026-09-23 실측)."""
+    raw = sys.stdin.buffer.read() if hasattr(sys.stdin, 'buffer') else sys.stdin.read().encode('utf-8', 'replace')
+    return json.loads(raw.decode('utf-8', errors='replace'))
+
+
 def main():
     try:
-        data = json.load(sys.stdin)
+        data = read_stdin_json()
     except Exception as e:
         # 입력을 못 읽으면 통과 — 가드가 모든 것을 막는 사고를 내지 않는다.
         # 다만 흔적은 남긴다. 조용히 통과하면 "훅이 안 도는 것"과 구분이 안 된다.

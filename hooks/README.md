@@ -10,9 +10,17 @@
 
 | 파일 | 역할 |
 |---|---|
-| `guard.py` | `PreToolUse` 훅 (Bash · PowerShell). 세 규칙을 코드로 막는다 |
+| `guard.py` | `PreToolUse` 훅 (Bash · PowerShell · Agent). 네 규칙을 코드로 막는다 |
 | `test_guard.py` | 자가 테스트. 막을 것이 막히고 **멀쩡한 것이 통과하는지** 본다. CI 가 돌린다 |
-| `settings.fragment.json` | 설치처 `.claude/settings.json` 에 합칠 조각 — `permissions.deny` + `hooks` |
+| `skill_usage.py` | `PostToolUse` 훅 (Skill). 스킬을 쓸 때마다 `<스킬>/기록/사용.md` 에 횟수·일자를 적는다 |
+| `test_skill_usage.py` | 그 자가 테스트. 임시 폴더에서만 쓴다. CI 가 돌린다 |
+| `settings.fragment.json` | 설치처 `.claude/settings.json` 에 합칠 조각 — `permissions.deny` + `hooks` 둘 |
+
+**`skill_usage.py` — "매 사용 시 기록" 규칙을 훅이 대신 지킨다.** 사람과 모델은 안 지켰다
+(한 세션에 쓴 스킬 6개 중 갱신 1개, 2026-09-23 실측). `SKILL.md` 를 고치면 설치기가 매번
+"변경됨" 으로 잡아 병합 소음이 나므로, 설치기 비교에서 빠지는 **`기록/`** 에 적는다.
+`SKILL.md` 의 "이력" 절(업데이트 횟수·일자)은 본문을 고칠 때만 사람이 갱신한다.
+플러그인 스킬(이름에 `:`)과 "## 이력" 절이 없는 폴더는 건드리지 않는다. 실패해도 스킬 호출을 막지 않는다.
 
 **`guard.py` 의 세 규칙**
 

@@ -25,6 +25,19 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/skill_usage.py\"",
+            "timeout": 10,
+            "statusMessage": "agent-harness skill usage"
+          }
+        ]
+      }
     ]
   }
 }
