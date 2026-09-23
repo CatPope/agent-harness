@@ -1,0 +1,30 @@
+{
+  "_comment": "agent-harness 훅 설정 조각. 설치처의 .claude/settings.json 에 사람이 합친다. 설치기는 이 파일을 건드리지 않는다. permissions.deny 는 접두 매칭이라 복합 명령을 못 잡는다 — 본 검사는 hooks 의 guard.py 가 하고 deny 는 이중 방어다.",
+  "permissions": {
+    "deny": [
+      "Bash(rm *)",
+      "Bash(rmdir *)",
+      "Bash(git clean *)",
+      "Bash(git rm *)",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(rm *)",
+      "PowerShell(del *)",
+      "PowerShell(rd *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py\"",
+            "timeout": 10,
+            "statusMessage": "agent-harness guard"
+          }
+        ]
+      }
+    ]
+  }
+}

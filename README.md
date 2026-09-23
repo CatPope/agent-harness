@@ -118,6 +118,20 @@ agent-harness/
 다음에 `-Topic implementation` 만 주더라도, documents 조각은 마커에 남아 있으므로 결과에서
 사라지지 않습니다. `-Status` / `--status` 가 설치한 토픽도 함께 보여줍니다.
 
+### 훅도 함께 깔립니다 — "안 읽어도 막히는" 층
+
+스킬과 `CLAUDE.md` 는 에이전트가 **읽고 따라야** 작동합니다. 2026-09-22 한 세션에서 그 텍스트
+규칙이 다섯 번 어겨졌고 막은 것은 하나도 없었습니다. 훅은 안 읽어도, 읽고 무시해도 막습니다.
+
+설치기가 `hooks/guard.py` · `test_guard.py` · `settings.fragment.json` 을 **`<설치처>/.claude/hooks/`** 로
+복사합니다 (프로젝트면 `<path>/.claude/hooks/`, 전역이면 `~/.claude/hooks/`). 조각과 같은 원칙으로
+**`settings.json` 은 건드리지 않습니다** — 조각의 내용을 사람이 합치고 `/hooks` 를 한 번 엽니다.
+설치 끝에 안내가 나옵니다.
+
+`guard.py` 가 막는 것 셋: **삭제 명령**(`rm`·`Remove-Item`·`git clean` …), **`-Project` 없는 설치기
+실행**(실제 전역 스토어에 쓰이므로), **`~/.claude/CLAUDE.md` 에 셸로 쓰기**. 규칙과 오탐 원칙은
+`hooks/README.md` 에 있습니다. CI 가 `hooks/test_guard.py` 를 돌립니다.
+
 ### 🔵 `-Project` 를 권장합니다
 
 설치처는 두 가지 중에 고릅니다.

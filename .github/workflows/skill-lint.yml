@@ -22,6 +22,7 @@ on:
       - 'workflows/**'
       - 'packs/**'
       - 'tools/**'
+      - 'hooks/**'
       - 'install.ps1'
       - 'install.sh'
       - '.github/workflows/skill-lint.yml'
@@ -32,6 +33,7 @@ on:
       - 'workflows/**'
       - 'packs/**'
       - 'tools/**'
+      - 'hooks/**'
       - 'install.ps1'
       - 'install.sh'
       - '.github/workflows/skill-lint.yml'
@@ -118,3 +120,10 @@ jobs:
             exit 1
           fi
           echo "리터럴 탭 없음"
+
+      - name: 5) 훅 가드 자가 테스트
+        run: |
+          set -euo pipefail
+          # hooks/guard.py 는 "안 읽어도 막히는" 층이다. 오탐이 생기면 사람이 훅을 꺼 버리므로
+          # 막을 것과 통과할 것을 둘 다 검사한다. 리터럴 탭 검사도 그 안에 있다.
+          python hooks/test_guard.py

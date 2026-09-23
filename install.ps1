@@ -557,6 +557,39 @@ if ($fragments.Count -gt 0) {
   }
 }
 
+# 훅 — 하네스 셋 중 "안 읽어도 막히는" 층. 스킬·조각처럼 파일만 떨구고,
+# settings.json 은 사람이 합친다 (사용자 설정 파일은 자동으로 건드리지 않는다).
+# 린터처럼 설치처에서 고칠 것이 아니라 그대로 쓰는 도구이므로 말없이 최신본으로 덮어쓴다.
+$HooksSrc = Join-Path $Root "hooks"
+$HooksOut = Join-Path $ClaudeMdBase "hooks"
+if ((Test-Path $HooksSrc) -and (Get-ChildItem $HooksSrc -Filter *.py -File)) {
+  if (-not (Test-Path $HooksOut)) { New-Item -ItemType Directory -Path $HooksOut -Force | Out-Null }
+  $hooksN = 0
+  $hookFiles = Get-ChildItem $HooksSrc -File | Where-Object { $_.Extension -eq ".py" -or $_.Name -eq "settings.fragment.json" }
+  foreach ($hf in $hookFiles) {
+    $dst = Join-Path $HooksOut $hf.Name
+    if ($hf.Name -eq "settings.fragment.json" -and -not $PSBoundParameters.ContainsKey('Project')) {
+      # 전역이면 훅 경로가 프로젝트 기준이 아니라 홈 기준이다
+      $txt = Get-Content -LiteralPath $hf.FullName -Raw -Encoding UTF8
+      $txt = $txt.Replace('$CLAUDE_PROJECT_DIR/.claude/hooks', '$HOME/.claude/hooks')
+      Write-Utf8NoBom $dst $txt
+    } else {
+      Copy-Item -LiteralPath $hf.FullName -Destination $dst -Force
+    }
+    $hooksN++
+  }
+  Write-Host ""
+  Write-Host ("훅: {0}  (파일 {1}개)" -f $HooksOut, $hooksN)
+  $settingsPath = Join-Path $ClaudeMdBase "settings.json"
+  $already = (Test-Path $settingsPath) -and ((Get-Content -LiteralPath $settingsPath -Raw -Encoding UTF8) -match 'agent-harness guard')
+  if ($already) {
+    Write-Host "  settings.json 에 이미 걸려 있습니다."
+  } else {
+    Write-Host ("  🔴 아직 켜지지 않았습니다. {0} 의 내용을" -f (Join-Path $HooksOut "settings.fragment.json")) -ForegroundColor Yellow
+    Write-Host ("     {0} 에 합친 뒤 /hooks 를 열거나 세션을 다시 시작하십시오." -f $settingsPath) -ForegroundColor Yellow
+  }
+}
+
 Write-Host ""
 Write-Host ("설치: {0}" -f ($chosen -join " + "))
 Write-Host ("  복사 {0}개, {1}개 건너뜀(같음 {2} · 변경됨 {3}), {4}개 실패" -f `

@@ -517,6 +517,33 @@ if [ "${#FRAGMENTS[@]}" -gt 0 ]; then
   fi
 fi
 
+# 훅 -- 하네스 셋 중 "안 읽어도 막히는" 층. 스킬·조각처럼 파일만 떨구고,
+# settings.json 은 사람이 합친다 (사용자 설정 파일은 자동으로 건드리지 않는다).
+# 린터처럼 설치처에서 고칠 것이 아니라 그대로 쓰는 도구이므로 말없이 최신본으로 덮어쓴다.
+HOOKS_OUT="$CLAUDE_MD_BASE/hooks"
+if ls "$ROOT"/hooks/*.py >/dev/null 2>&1; then
+  mkdir -p "$HOOKS_OUT"
+  hooks_n=0
+  for hf in "$ROOT"/hooks/*.py "$ROOT"/hooks/settings.fragment.json; do
+    [ -f "$hf" ] || continue
+    if [ "$(basename "$hf")" = "settings.fragment.json" ] && [ "$PROJECT_GIVEN" = 0 ]; then
+      # 전역이면 훅 경로가 프로젝트 기준이 아니라 홈 기준이다
+      sed 's#\$CLAUDE_PROJECT_DIR/\.claude/hooks#$HOME/.claude/hooks#' "$hf" > "$HOOKS_OUT/settings.fragment.json"
+    else
+      cp -f "$hf" "$HOOKS_OUT/$(basename "$hf")"
+    fi
+    hooks_n=$((hooks_n+1))
+  done
+  echo
+  echo "훅: $HOOKS_OUT  (파일 ${hooks_n}개)"
+  if grep -q 'agent-harness guard' "$CLAUDE_MD_BASE/settings.json" 2>/dev/null; then
+    echo "  settings.json 에 이미 걸려 있습니다."
+  else
+    echo "  🔴 아직 켜지지 않았습니다. $HOOKS_OUT/settings.fragment.json 의 내용을"
+    echo "     $CLAUDE_MD_BASE/settings.json 에 합친 뒤 /hooks 를 열거나 세션을 다시 시작하십시오."
+  fi
+fi
+
 echo
 joined=""
 for c in "${CHOSEN[@]}"; do
