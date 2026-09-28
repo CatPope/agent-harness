@@ -21,9 +21,13 @@ RULES = [
     ("화살표 연결", re.compile(r"→|->")),
     ("콜론 설명", re.compile(r"^[^:：]{1,20}\s?[:：]\s+\S")),
     ("대구 'A가 아니라 B'", re.compile(r"(이|가) 아니라 ")),
-    ("상투어", re.compile(r"핵심은|결론적으로|즉,|중요합니다|할 수 있습니다")),
+    ("상투어", re.compile(r"핵심은|결론적으로|즉,|(?:^|[.\s])즉\s|중요합니다|할 수 있습니다")),
+    # 별점(★☆)은 척도라 뺀다.
+    ("이모지", re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u2604\u2607-\u27BF\u2B50]")),
 ]
 BOLD = re.compile(r"\*\*[^*]+\*\*")
+# 출처 목록의 긴 주소가 긴 문장으로 걸리지 않게 길이를 잴 때만 뺀다.
+URL = re.compile(r"https?://\S+")
 TEXT_TAGS = re.compile(r"<(?:a:t|w:t|hp:t)(?:\s[^>]*)?>([^<]*)</(?:a:t|w:t|hp:t)>")
 PARA_END = re.compile(r"</(?:a:p|w:p|hp:p)>")
 
@@ -63,7 +67,7 @@ def check(path):
         found = [name for name, rx in RULES if rx.search(plain)]
         if len(BOLD.findall(line)) >= 2:
             found.append("굵은 글씨 과다")
-        for sent in re.split(r"(?<=[.다요])\s+", plain):
+        for sent in re.split(r"(?<=[.다요])\s+", URL.sub("", plain)):
             if len(sent) > MAX_LEN and "|" not in line:
                 found.append("긴 문장(%d자)" % len(sent))
                 break
