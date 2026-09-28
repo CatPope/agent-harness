@@ -1,0 +1,255 @@
+<title>주간발표회 1차 WBS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F6F7F2; --surface:#FFFFFF; --ink:#1E2622; --muted:#66706A; --line:#DCE0D8; --line-strong:#B9C0B6;
+  --accent:#2E7A84; --accent-ink:#FFFFFF; --sec:#E9ECE6;
+  --should:#3F9C6B; --should-fill:#D3EEDD; --could:#C99A14; --could-fill:#FBEEC0;
+  --today:#C8553D; --done:rgba(30,38,34,.28);
+  --label:300px; --rowh:34px;
+  --display:"Gowun Batang",ui-serif,Georgia,"Apple SD Gothic Neo","Malgun Gothic",serif;
+  --body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#131816; --surface:#1B211E; --ink:#E7ECE6; --muted:#98A39B; --line:#2B332E; --line-strong:#3E4841;
+    --accent:#63B7C0; --accent-ink:#0F1A1B; --sec:#232B27;
+    --should:#5EC58C; --should-fill:#1E4632; --could:#E2B93B; --could-fill:#4A3C10;
+    --today:#F07A5E; --done:rgba(231,236,230,.32);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#131816; --surface:#1B211E; --ink:#E7ECE6; --muted:#98A39B; --line:#2B332E; --line-strong:#3E4841;
+  --accent:#63B7C0; --accent-ink:#0F1A1B; --sec:#232B27;
+  --should:#5EC58C; --should-fill:#1E4632; --could:#E2B93B; --could-fill:#4A3C10;
+  --today:#F07A5E; --done:rgba(231,236,230,.32);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;
+  font-variant-numeric:tabular-nums;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.2;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:6px 0 0;display:flex;flex-wrap:wrap;gap:4px 14px}
+.sub b{color:var(--ink);font-weight:600}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:22px;height:12px;border-radius:2px;border:1px solid}
+.sw.s{background:var(--should-fill);border-color:var(--should)}
+.sw.c{background:var(--could-fill);border-color:var(--could)}
+.sw.t{width:2px;height:14px;background:var(--today);border:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+.tile .k{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.tile .v{font-size:22px;font-weight:600;line-height:1.3}
+.tile .v small{font-size:13px;font-weight:400;color:var(--muted);margin-left:4px}
+.tile .bar{height:4px;background:var(--line);border-radius:2px;margin-top:8px;overflow:hidden}
+.tile .bar i{display:block;height:100%;background:var(--accent)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.tabs{display:inline-flex;border:1px solid var(--line-strong);border-radius:6px;overflow:hidden}
+.tabs button{font:inherit;font-weight:500;background:var(--surface);color:var(--ink);border:0;padding:7px 16px;cursor:pointer}
+.tabs button+button{border-left:1px solid var(--line-strong)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.chips button{font:inherit;font-size:13px;background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:999px;padding:3px 11px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.gantt{position:relative;min-width:860px}
+.row{display:grid;grid-template-columns:var(--label) repeat(var(--weeks),minmax(56px,1fr));min-height:var(--rowh);border-top:1px solid var(--line)}
+.row>.cell{border-left:1px solid var(--line)}
+.head1,.head2{position:sticky;top:0;z-index:3;background:var(--surface)}
+.head1{border-top:0}
+.head2{top:auto}
+.head1 .lab{font-weight:600;padding:8px 12px;grid-row:span 2}
+.month{grid-row:1;text-align:center;font-weight:600;padding:5px 4px;background:var(--accent);color:var(--accent-ink);border-left:1px solid rgba(255,255,255,.35)}
+.week{grid-row:2;text-align:center;padding:4px 2px 6px;font-size:12px;color:var(--muted);border-left:1px solid var(--line);line-height:1.25}
+.week b{display:block;color:var(--ink);font-size:12px}
+.week.now{background:color-mix(in srgb,var(--today) 10%,transparent)}
+.row.sec{background:var(--sec);min-height:30px}
+.row.sec .lab{font-weight:600;padding:5px 12px;display:flex;justify-content:space-between;gap:8px}
+.row.sec .pct{color:var(--muted);font-weight:500}
+.lab{padding:6px 12px;display:flex;align-items:center;gap:8px;min-width:0}
+.num{color:var(--muted);font-size:12px;width:38px;flex:none}
+.row.child .num{padding-left:10px}
+.ttl{flex:1;min-width:0;overflow-wrap:anywhere}
+.row.parent .ttl{font-weight:600}
+.who{display:flex;gap:4px;flex:none}
+.av{width:20px;height:20px;border-radius:50%;background:var(--line);color:var(--ink);font-size:11px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.av[data-p="홍길동"]{background:#C9DCE8;color:#123A52}.av[data-p="김철수"]{background:#D8D0EA;color:#3A2A62}.av[data-p="이영희"]{background:#F0D9C2;color:#5B3610}.av[data-p="박민수"]{background:#D2E8D0;color:#1F4A2A}
+.pct{width:42px;text-align:right;flex:none;font-size:12px;color:var(--muted)}
+.pct.full{color:var(--should);font-weight:600}
+.tl{position:relative;grid-column:2 / -1;display:grid;grid-template-columns:repeat(var(--weeks),minmax(56px,1fr))}
+.tl .cell{border-left:1px solid var(--line);grid-row:1}
+.bar{grid-row:1;align-self:center;height:20px;margin:0 3px;border-radius:3px;border:1px solid;position:relative;overflow:hidden;z-index:1}
+.bar.S{background:var(--should-fill);border-color:var(--should)}
+.bar.C{background:var(--could-fill);border-color:var(--could);background-image:repeating-linear-gradient(135deg,transparent 0 6px,rgba(0,0,0,.05) 6px 8px)}
+.bar i{position:absolute;inset:0;width:var(--d);background:var(--done)}
+.bar span{position:absolute;inset:0;padding:0 6px;font-size:11px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.todayline{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--today);z-index:2;pointer-events:none}
+.todayline em{position:absolute;top:2px;left:4px;font-style:normal;font-size:10px;color:var(--today);font-weight:600;white-space:nowrap}
+.row.total{background:var(--sec);font-weight:600}
+.row.total .lab{justify-content:space-between}
+.pgroup .lab .role{font-weight:400;color:var(--muted);font-size:12px}
+.period{font-size:12px;color:var(--muted);flex:none;width:130px;text-align:right}
+.note{border-left:3px solid var(--could);padding:8px 12px;color:var(--muted);background:var(--surface);border-radius:0 6px 6px 0}
+details{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+summary{cursor:pointer;font-weight:600}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:10px 0 0}
+dt{font-weight:600}dd{margin:0;color:var(--muted)}
+.foot{color:var(--muted);font-size:12px}
+[hidden]{display:none!important}
+@media (max-width:640px){
+  :root{--label:190px}
+  h1{font-size:24px}
+  .who{display:none}
+  .pct{width:36px}
+  .period{width:96px;font-size:11px}
+  dl{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .3s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>주간발표회 모임 관리 웹사이트 — 1차 개발 일정</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="legend">
+      <span><i class="sw s"></i>Should · 1차 오픈에 꼭 필요</span>
+      <span><i class="sw c"></i>Could · 밀리면 2차로</span>
+      <span><i class="sw t"></i>오늘</span>
+      <span>막대 안 짙은 부분 = 완료 비율</span>
+    </div>
+  </header>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="toolbar">
+    <div class="tabs" role="tablist" id="tabs">
+      <button role="tab" id="tab-feature" aria-selected="true" data-view="feature">기능별</button>
+      <button role="tab" id="tab-people" aria-selected="false" data-view="people">인원별</button>
+    </div>
+    <div class="chips" id="chips"><span>담당자</span></div>
+  </div>
+
+  <div class="scroll"><div class="gantt" id="gantt"></div></div>
+
+  <p class="note" id="absent"></p>
+
+  <details>
+    <summary>용어 사전</summary>
+    <dl id="gloss"></dl>
+  </details>
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+const DATA = __DATA__;
+const W = DATA.weeks;
+document.documentElement.style.setProperty('--weeks', W);
+const $ = s => document.querySelector(s);
+const fmt = iso => { const d = new Date(iso + 'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; };
+const pct = v => Math.round(v * 100) + '%';
+const leaves = DATA.tasks.filter(t => !t.parent);
+const avg = arr => arr.length ? arr.reduce((a, t) => a + t.done, 0) / arr.length : 0;
+const parentDone = p => avg(DATA.tasks.filter(t => t.sub && t.num.startsWith(p.num + '.')));
+const doneOf = t => t.parent ? parentDone(t) : t.done;
+
+// 상단 요약
+$('#sub').innerHTML = `<span>1차 개발(필수 기능)</span><span><b>${DATA.start} ~ ${DATA.end}</b> · ${W}주</span><span>작성 ${DATA.today}</span><span>v${DATA.version}</span>`;
+const nS = leaves.filter(t => t.prio === 'S').length, nC = leaves.length - nS;
+const total = avg(leaves);
+const todayD = new Date(DATA.today + 'T00:00:00'), startD = new Date(DATA.start + 'T00:00:00');
+const dayIdx = Math.round((todayD - startD) / 864e5);
+const curWeek = Math.floor(dayIdx / 7) + 1;
+$('#tiles').innerHTML = [
+  ['전체 진척률', `${pct(total)}<small>${leaves.filter(t=>t.done>=1).length}/${leaves.length} 완료</small>`, total],
+  ['이번 주', `${curWeek}W<small>${W}주 중</small>`, curWeek / W],
+  ['Should', `${nS}<small>건 · 꼭 필요</small>`, null],
+  ['Could', `${nC}<small>건 · 미룰 수 있음</small>`, null],
+  ...DATA.people.map(p => { const m = leaves.filter(t => t.who.includes(p.name)); return [p.name, `${m.length}<small>건 · ${pct(avg(m))}</small>`, avg(m)]; }),
+].map(([k, v, b]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div>${b == null ? '' : `<div class="bar"><i style="width:${b*100}%"></i></div>`}</div>`).join('');
+
+if (DATA.absent) $('#absent').textContent = `${DATA.absent.name}: ${DATA.absent.note}`; else $('#absent').hidden = true;
+$('#gloss').innerHTML = DATA.glossary.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join('');
+$('#foot').textContent = `주 단위 표시(월~금). 원본은 [1차] WBS_일정관리_v${DATA.version}.xlsx — 같은 자료에서 만들었다.`;
+
+// 담당자 필터 칩
+let filter = null;
+const chips = $('#chips');
+DATA.people.forEach(p => {
+  const b = document.createElement('button'); b.textContent = p.name; b.id = 'chip-' + p.name; b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => { filter = filter === p.name ? null : p.name; chips.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.textContent === filter))); render(); };
+  chips.appendChild(b);
+});
+
+// 간트 그리기
+const cells = () => Array.from({ length: W }, (_, i) => `<i class="cell" style="grid-column:${i + 1}"></i>`).join('');
+const who = t => `<span class="who">${t.who.map(n => `<i class="av" data-p="${n}" title="${n}">${n[0]}</i>`).join('')}</span>`;
+const bar = (t, d) => `<div class="bar ${t.prio}" style="grid-column:${t.w0} / ${t.w1 + 1}" title="${t.num} ${t.title} · ${t.w0}W~${t.w1}W · ${pct(d)}"><i style="--d:${d*100}%"></i><span>${t.title}</span></div>`;
+const taskRow = (t, extra = '') => {
+  const d = doneOf(t);
+  return `<div class="row ${t.sub ? 'child' : ''} ${t.parent ? 'parent' : ''}">
+    <div class="lab"><span class="num">${t.num}</span><span class="ttl">${t.title}</span>${extra}${who(t)}<span class="pct ${d >= 1 ? 'full' : ''}">${pct(d)}</span></div>
+    <div class="tl">${cells()}${bar(t, d)}</div></div>`;
+};
+const secRow = (label, sub, d, cls = 'sec') => `<div class="row ${cls}"><div class="lab"><span>${label}${sub ? ` <span class="role">${sub}</span>` : ''}</span><span class="pct">${d == null ? '' : pct(d)}</span></div><div class="tl">${cells()}</div></div>`;
+const header = () => {
+  const months = DATA.months.map(([n, a, b]) => `<div class="month" style="grid-column:${a + 1} / ${b + 2}">${n}</div>`).join('');
+  const weeks = DATA.weekDates.map((d, i) => `<div class="week ${i + 1 === curWeek ? 'now' : ''}" style="grid-column:${i + 2}"><b>${i + 1}W</b>${fmt(d)}</div>`).join('');
+  return `<div class="row head1" style="grid-template-rows:auto auto"><div class="lab">작업</div>${months}${weeks}</div>`;
+};
+const todayLine = () => {
+  if (dayIdx < 0 || curWeek > W) return '';
+  const wd = Math.min(dayIdx % 7, 5);             // 토·일은 금요일 끝에 붙인다
+  const f = (curWeek - 1 + wd / 5) / W;
+  return `<div class="todayline" style="left:calc(var(--label) + (100% - var(--label)) * ${f})"><em>오늘 ${fmt(DATA.today)}</em></div>`;
+};
+
+function render() {
+  const view = document.querySelector('#tabs [aria-selected="true"]').dataset.view;
+  chips.hidden = view !== 'feature';
+  let out = header();
+  if (view === 'feature') {
+    DATA.sections.forEach((s, i) => {
+      const ts = DATA.tasks.filter(t => t.section === s && (!filter || t.who.includes(filter)));
+      if (!ts.length) return;
+      out += secRow(`${i + 1}. ${s}`, '', avg(ts.filter(t => !t.parent)));
+      ts.forEach(t => out += taskRow(t));
+    });
+    const vis = leaves.filter(t => !filter || t.who.includes(filter));
+    out += secRow(filter ? `${filter} 진척률` : '전체 진척률', '', avg(vis), 'total');
+  } else {
+    DATA.people.forEach((p, i) => {
+      const m = leaves.filter(t => t.who.includes(p.name)).sort((a, b) => a.w0 - b.w0 || a.w1 - b.w1 || a.num.localeCompare(b.num, undefined, { numeric: true }));
+      out += secRow(`${i + 1}. ${p.name}`, `${p.role} · ${m.length}건`, avg(m));
+      m.forEach(t => {
+        const w = t.w0 === t.w1 ? `${t.w0}W` : `${t.w0}W~${t.w1}W`;
+        const d0 = fmt(DATA.weekDates[t.w0 - 1]), d1 = fmt(new Date(new Date(DATA.weekDates[t.w1 - 1] + 'T00:00:00').getTime() + 4 * 864e5).toISOString().slice(0, 10));
+        out += taskRow({ ...t, who: t.who.filter(n => n !== p.name) }, `<span class="period">${w} · ${d0}~${d1}</span>`);
+      });
+    });
+    if (DATA.absent) out += secRow(`${DATA.people.length + 1}. ${DATA.absent.name}`, DATA.absent.note, null);
+    out += secRow('전체 진척률', '', total, 'total');
+  }
+  $('#gantt').innerHTML = out + todayLine();
+}
+
+document.querySelectorAll('#tabs [role=tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs [role=tab]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  try { localStorage.setItem('wbs-view', b.dataset.view); } catch (e) {}
+  render();
+});
+(() => {
+  let v = null;
+  if (location.hash === '#people') v = 'people';
+  else { try { v = localStorage.getItem('wbs-view'); } catch (e) {} }
+  const b = document.querySelector(`#tabs [data-view="${v}"]`);
+  if (b) document.querySelectorAll('#tabs [role=tab]').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  render();
+})();
+</script>

@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>주간발표회 화면 데모</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{
+  --bg:#EEF2F0; --surface:#FFFFFF; --sunk:#F3F6F5; --line:#DCE3E0; --line2:#C8D2CE;
+  --text:#14201C; --muted:#56655F; --faint:#8C9994;
+  --accent:#16786A; --accent-ink:#FFFFFF; --accent-soft:#E0F1EC; --mark:#FFE07A;
+  --danger:#CF4037; --danger-soft:#FBE8E6; --ok:#2A8A55; --ok-soft:#E3F3EA; --warn:#A86E12; --warn-soft:#FBF1DC;
+  --r-card:16px; --r-ctl:11px; --sh:0 10px 30px rgba(20,40,34,.16);
+  --font:'Pretendard','Pretendard Variable','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent);cursor:pointer;text-decoration:none;font-weight:600}
+[hidden]{display:none!important}
+
+/* 데모 도구 막대 */
+.bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .logo{font-weight:800;letter-spacing:-.02em;margin-right:6px}
+.bar .logo small{font-weight:600;color:var(--muted);margin-left:6px}
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:8px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.bar label{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.bar select{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--surface)}
+.bar .sp{flex:1}
+.tog{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px;font-weight:600}
+.tog.on{background:var(--text);color:#fff;border-color:var(--text)}
+.sample{font-size:12px;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:6px}
+
+.wrap{display:flex;gap:20px;align-items:flex-start;justify-content:center;padding:24px 16px 48px;flex-wrap:wrap}
+.stage{display:flex;justify-content:center;min-width:0;max-width:100%}
+@media (max-width:1180px){.stage{overflow-x:auto}}
+.side{width:360px;max-width:100%;display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);overflow:hidden}
+.panel h3{margin:0;padding:12px 16px;font-size:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.panel .pb{padding:12px 16px}
+
+/* 기기 틀 */
+#device{position:relative;flex:none}
+.phone{width:390px;height:800px;border-radius:44px;background:#0E1513;padding:12px;box-shadow:var(--sh)}
+.phone .in{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:var(--surface);display:flex;flex-direction:column}
+.status{height:34px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:700}
+.win{width:1060px;height:680px;border-radius:12px;background:var(--surface);box-shadow:var(--sh);border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;position:relative}
+.win.web{width:1120px;height:700px}
+.shot .desk{min-height:640px}
+.titlebar{height:38px;flex:none;display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--sunk);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:600}
+.dots{display:flex;gap:6px}.dots i{width:11px;height:11px;border-radius:50%;background:var(--line2);display:block}
+.url{margin-left:12px;flex:1;max-width:460px;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:3px 10px;font-weight:500}
+.scr{position:relative;flex:1;overflow-y:auto;overflow-x:hidden}
+.scr::-webkit-scrollbar{width:0}
+
+/* 모바일 공통 */
+.hdr{position:sticky;top:0;z-index:5;background:var(--surface);display:flex;align-items:center;gap:6px;padding:8px 14px 10px;min-height:52px}
+.hdr h1{font-size:19px;margin:0;letter-spacing:-.02em;flex:1}
+.ib{width:38px;height:38px;border:0;background:none;border-radius:10px;display:grid;place-items:center;cursor:pointer;position:relative;color:var(--text)}
+.ib:hover{background:var(--sunk)}
+.ib .n{position:absolute;top:4px;right:3px;min-width:17px;height:17px;border-radius:9px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.body{padding:4px 16px 24px;display:flex;flex-direction:column;gap:12px}
+.tabs{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:var(--surface);padding:6px 4px 14px}
+.tabs button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--faint);cursor:pointer;padding:4px 0;font-weight:600}
+.tabs button.on{color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:14px 16px}
+.card.hero{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.card.hero .muted{color:rgba(255,255,255,.78)}
+.card.todo{background:var(--mark);border-color:#EACB5A}
+.ct{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.hero .ct{color:rgba(255,255,255,.8)}
+.big{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .sm{font-size:12px} .b{font-weight:700}
+.row{display:flex;align-items:center;gap:10px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.list{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.li:last-child{border-bottom:0}
+.li .grow{flex:1;min-width:0}
+.li .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ico{width:36px;height:36px;border-radius:10px;background:var(--sunk);display:grid;place-items:center;flex:none;color:var(--muted)}
+.btn{border:1px solid var(--line2);background:var(--surface);border-radius:var(--r-ctl);padding:10px 14px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{background:var(--sunk)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.pri:hover{filter:brightness(1.07)}
+.btn.dangertxt{color:var(--danger);border-color:transparent;background:none}
+.btn.dangerbg{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.ghost{border-color:transparent;background:var(--sunk)}
+.btn.sm{padding:6px 10px;font-size:12px;border-radius:9px}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.42;cursor:not-allowed;filter:none}
+.btns{display:flex;gap:8px}.btns>.btn{flex:1}
+label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.inp,select.inp,textarea.inp{width:100%;border:1px solid var(--line2);border-radius:var(--r-ctl);padding:11px 12px;background:var(--surface);font-weight:500;color:var(--text)}
+.inp:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+textarea.inp{min-height:110px;resize:vertical;line-height:1.55}
+.hint{font-size:12px;color:var(--faint);font-weight:500}
+.err{font-size:12px;color:var(--danger);font-weight:600;min-height:18px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.badge.ok{background:var(--ok-soft);color:var(--ok)} .badge.no{background:var(--danger-soft);color:var(--danger)}
+.badge.wait{background:var(--warn-soft);color:var(--warn)} .badge.acc{background:var(--accent-soft);color:var(--accent)}
+.badge.draft{background:var(--sunk);color:var(--muted);border:1px dashed var(--line2)}
+.chip{border:1px solid var(--line2);background:var(--surface);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--text);border-color:var(--text);color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.steps{display:flex;gap:4px}
+.steps i{flex:1;height:4px;border-radius:3px;background:var(--line)}
+.steps i.on{background:var(--accent)}
+.stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;font-size:11px;font-weight:700;color:var(--faint)}
+.stepper div{padding-top:8px;border-top:3px solid var(--line)}
+.stepper .done{color:var(--muted);border-color:var(--accent-soft)}
+.stepper .on{color:var(--accent);border-color:var(--accent)}
+.av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none}
+.empty{text-align:center;padding:28px 10px;color:var(--muted)}
+.divider{height:1px;background:var(--line);margin:4px 0}
+.auth{padding:40px 24px 24px;display:flex;flex-direction:column;gap:14px}
+.brand{font-size:28px;font-weight:900;letter-spacing:-.04em}
+.brand em{font-style:normal;background:linear-gradient(transparent 58%,var(--mark) 58%)}
+.center{text-align:center}
+.slot{border:1px dashed var(--line2);border-radius:var(--r-ctl);padding:10px 12px;color:var(--faint);font-size:12px}
+
+/* 달력 */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal .dh{text-align:center;font-size:11px;font-weight:700;color:var(--faint)}
+.day{min-width:0;padding:0;aspect-ratio:1/1.08;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;position:relative;font-weight:700}
+.day small{font-size:9.5px;font-weight:700;color:var(--muted)}
+.day.off{opacity:.35;cursor:default;background:var(--sunk)}
+.day.no{background:repeating-linear-gradient(135deg,var(--danger-soft) 0 5px,#fff 5px 9px);border-color:#EBB7B2;color:var(--danger)}
+.day.maybe{border:2px dashed var(--warn);color:var(--warn)}
+.day.ok{border-color:var(--accent);background:var(--accent-soft)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted);font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:14px;height:14px;border-radius:4px;border:1px solid var(--line2);display:inline-block}
+.legend .lno{background:repeating-linear-gradient(135deg,var(--danger-soft) 0 3px,#fff 3px 6px);border-color:#EBB7B2}
+.legend .lmay{border:2px dashed var(--warn)}
+.legend .lok{background:var(--accent-soft);border-color:var(--accent)}
+.trow{border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.trow select{border:1px solid var(--line2);border-radius:9px;padding:6px 8px;background:var(--surface);font-weight:600}
+.tbar{position:relative;height:10px;border-radius:6px;background:var(--sunk)}
+.tbar b{position:absolute;top:0;bottom:0;border-radius:6px;background:var(--accent)}
+.tbar.maybe b{background:repeating-linear-gradient(90deg,var(--warn) 0 6px,#E9C77E 6px 10px)}
+.tscale{display:flex;justify-content:space-between;font-size:9.5px;color:var(--faint);font-weight:600}
+.cand{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;cursor:pointer}
+.cand.on{border-color:var(--accent);background:var(--accent-soft)}
+.cb{width:22px;height:22px;border-radius:7px;border:2px solid var(--line2);display:grid;place-items:center;flex:none;background:var(--surface)}
+.cand.on .cb{background:var(--accent);border-color:var(--accent);color:#fff}
+.meter{height:6px;border-radius:4px;background:var(--sunk);overflow:hidden;margin-top:6px}
+.meter b{display:block;height:100%;background:var(--accent)}
+.strike{text-decoration:line-through;color:var(--faint)}
+
+/* 공지 미리보기(디스코드 모양) */
+.dc{background:#2B2D31;color:#DBDEE1;border-radius:12px;padding:12px;font-size:13px}
+.dc .who{display:flex;gap:8px;align-items:center;font-weight:700;color:#F2F3F5;font-size:13px}
+.dc .who .bot{font-size:9px;background:#5865F2;color:#fff;border-radius:4px;padding:1px 4px}
+.dc .who .tm{font-weight:500;color:#949BA4;font-size:11px}
+.emb{margin-top:6px;border-left:4px solid var(--accent);background:#232428;border-radius:4px;padding:8px 10px;white-space:pre-wrap;line-height:1.5}
+.emb .et{font-weight:800;color:#F2F3F5;margin-bottom:3px}
+.dcfeed{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow:auto;background:#313338;padding:12px}
+.dch{background:#2B2D31;color:#F2F3F5;font-weight:700;padding:10px 14px;font-size:13px;display:flex;justify-content:space-between}
+.dch select{background:#1E1F22;color:#DBDEE1;border:0;border-radius:6px;padding:3px 6px}
+
+/* 팝업, 시트, 토스트 */
+.mask{position:absolute;inset:0;background:rgba(10,20,17,.42);z-index:30;display:flex;align-items:flex-end;justify-content:center}
+.mask.mid{align-items:center}
+.modal{background:var(--surface);width:100%;border-radius:22px 22px 0 0;padding:20px 18px 22px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--sh);max-height:88%;overflow:auto}
+.mask.mid .modal{width:min(440px,92%);border-radius:18px}
+.modal h2{margin:0;font-size:18px;letter-spacing:-.02em}
+.toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;font-size:13px;z-index:40;box-shadow:var(--sh);white-space:nowrap}
+
+/* PC 업로더, 관리자 웹 */
+.pcb{padding:18px 22px;display:flex;flex-direction:column;gap:14px;height:100%}
+.pathbox{display:flex;gap:10px;align-items:center;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pathbox code{flex:1;font:600 13px Consolas,monospace}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--sunk)}
+table.t td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
+table.t tr.sel td{background:var(--accent-soft)}
+.drop{border:2px dashed var(--line2);border-radius:14px;padding:16px;text-align:center;color:var(--muted);font-weight:600}
+.drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.prog{height:8px;border-radius:5px;background:var(--sunk);overflow:hidden}
+.prog b{display:block;height:100%;background:var(--accent);transition:width .2s}
+.admin{display:flex;height:100%}
+.nav{width:210px;flex:none;border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:4px;background:var(--sunk)}
+.nav .nb{border:0;background:none;text-align:left;padding:9px 12px;border-radius:9px;font-weight:600;cursor:pointer;color:var(--muted)}
+.nav .nb.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.nav .nb:disabled{opacity:.45;cursor:not-allowed}
+.main{flex:1;padding:22px 26px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.main h1{margin:0;font-size:21px;letter-spacing:-.02em}
+.alert{border-radius:12px;padding:10px 14px;font-weight:600;font-size:13px}
+.desk{display:flex;min-height:100%}
+.snav{width:200px;flex:none;border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:2px;background:var(--sunk)}
+.snav .nb{border:0;background:none;text-align:left;padding:9px 10px;border-radius:9px;font-weight:600;cursor:pointer;color:var(--muted);display:flex;gap:10px;align-items:center}
+.snav .nb.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.snav .grow{flex:1}
+.dcont{flex:1;min-width:0;max-width:820px;margin:0 auto;padding:8px 12px 24px}
+.dauth{max-width:420px;margin:24px auto}
+.phone .grid2{grid-template-columns:1fr}
+.admtabs{display:flex;overflow-x:auto;white-space:nowrap}
+.admtabs button{flex:1 0 auto}
+.nowrap{white-space:nowrap;flex:none}
+.phone .hide-m{display:none}
+.phone table.t{min-width:0!important}
+.dcont .cal{max-width:560px}
+.grow{flex:1}
+.alert.no{background:var(--danger-soft);color:var(--danger)}
+.alert.info{background:var(--sunk);color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.radio{display:flex;gap:8px;flex-wrap:wrap}
+
+/* 설명 패널 */
+.desc .sid{font:700 12px Consolas,monospace;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:6px}
+.desc ol{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.desc li{display:flex;gap:10px;font-size:13px;line-height:1.5;cursor:default}
+.desc li b{flex:none;width:20px;height:20px;border-radius:50%;background:var(--danger);color:#fff;font-size:11px;display:grid;place-items:center;margin-top:1px}
+.desc li.hl{background:var(--mark);border-radius:6px}
+.jump{display:flex;flex-wrap:wrap;gap:5px}
+.jump button{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:3px 7px;font:600 11px Consolas,monospace;cursor:pointer;color:var(--muted)}
+.jump button.on{background:var(--text);color:#fff;border-color:var(--text)}
+
+/* 번호 표시 */
+.mk{position:absolute;z-index:25;width:22px;height:22px;border-radius:50%;background:var(--danger);color:#fff;font:800 12px/22px var(--font);text-align:center;box-shadow:0 0 0 2px #fff;pointer-events:none}
+.mkbox{position:absolute;z-index:24;border:1.5px dashed var(--danger);border-radius:8px;pointer-events:none}
+
+/* 흑백 와이어프레임 캡처 모드 */
+.wire #device .in,.wire #device .win{filter:grayscale(1) contrast(1.03)}
+.wire .phone{box-shadow:none;background:#222}
+.wire .win{box-shadow:none}
+.wire .card.hero{background:#555;border-color:#555}
+.wire .card.todo{background:#EDEDED;border-color:#BBB}
+.shot .bar,.shot .side{display:none}
+.shot body,body.shot{background:#fff}
+.shot .wrap{padding:8px;justify-content:flex-start}
+.shot .phone{height:auto;min-height:800px}
+.shot .phone .in{height:auto;min-height:776px}
+.shot .phone .scr{overflow:visible;flex:none}
+.shot .win{height:auto;min-height:640px}
+.shot .win .scr,.shot .main{overflow:visible}
+.shot .admin{height:auto;min-height:660px}
+.marks .body,.marks .auth,.marks .pcb{padding-left:36px}
+.marks .main{padding-left:44px}
+.marks .nav{padding-left:30px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="logo">주간발표회<small>화면 데모 v1.4.0</small></div>
+  <div class="seg" id="devseg">
+    <button data-act="dev" data-arg="mob">스마트폰 앱</button>
+    <button data-act="dev" data-arg="pc">PC 앱</button>
+    <button data-act="dev" data-arg="web">웹</button>
+  </div>
+  <label>로그인한 사람
+    <select id="rolesel">
+      <option value="박민수">박민수 · 회원</option>
+      <option value="김철수">김철수 · 회원</option>
+      <option value="이영희">이영희 · 부팀장</option>
+      <option value="홍길동">홍길동 · 관리자, 팀장</option>
+    </select>
+  </label>
+  <label>일정 단계
+    <select id="stagesel">
+      <option value="none">요청 전</option>
+      <option value="input">가능 시간 입력</option>
+      <option value="vote">투표</option>
+      <option value="done">확정</option>
+    </select>
+  </label>
+  <span class="sp"></span>
+  <span class="sample">이름과 일정은 예시 데이터</span>
+  <button class="tog" id="desctog" data-act="desc">설명 보기</button>
+  <button class="tog" data-act="reset">처음부터</button>
+</div>
+
+<div class="wrap">
+  <div class="stage"><div id="device"></div></div>
+  <div class="side">
+    <div class="panel desc" id="descpanel">
+      <h3><span>화면 설명</span><span class="faint sm">설명 보기를 켜면 번호가 뜬다</span></h3>
+      <div class="pb" id="desc"></div>
+    </div>
+    <div class="panel">
+      <h3><span>화면 바로 가기</span></h3>
+      <div class="pb jump" id="jump"></div>
+    </div>
+    <div class="panel" style="border-color:#1E1F22">
+      <div class="dch"><span># 디스코드 공지방 (모의)</span>
+        <select id="dcsel"><option>주간발표회-공지</option><option>운영진</option><option>개인 메시지</option></select></div>
+      <div class="dcfeed" id="dcfeed"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SPEC = {"title": "주간발표회 화면설계서", "writer": "홍길동", "overview": [["기획배경", ["모임 일정을 잡을 때마다 회원에게 전화를 돌렸다.", "공지 문구를 매번 AI 에 다시 써 달라고 했다.", "발표 녹화 파일을 찾아 올리는 일이 번거로웠다."]], ["기획목적", ["일정 조율, 공지, 자료 공유를 앱 하나에서 대충 끝낸다.", "누가 운영을 맡아도 같은 방식으로 모임을 굴린다."]], ["기대효과", ["일정 요청부터 확정 공지까지 전화 0통.", "공지 작성에서 디스코드 도착까지 10초 안.", "녹화 파일은 지정 폴더에서 고르기 한 번으로 올린다."]], ["기능요약", ["일정 조율. 요청, 가능 시간 입력, 후보 투표, 확정, 변경.", "공지. 템플릿, 임시 저장, 발송, 실패 다시 보내기.", "자료. 어느 기기에서나 올리고 자료실에서 내려받기. PC 앱과 웹은 녹화 폴더를 지정한다.", "서비스 관리자. 역할, 팀과 공지방, 대상별 공지. 회원가입과 로그인."]], ["기타사항", ["구현은 네이티브 앱이다. 모든 화면이 스마트폰 앱, PC 앱, 웹에서 같은 기능으로 동작한다.", "기술 스택은 Flutter + Supabase 셀프호스팅 + Go 보조 서버로 정했다. 로그인은 이메일로 한다.", "데모 HTML 은 같은 원본에서 만들었다. 설명 보기를 켜면 이 문서의 Description 이 보인다.", "용어. 앱 안의 역할은 문서에서 서비스 관리자라 쓰고 화면에는 관리자로 보인다. 서버, DB, Studio 를 다루는 사람은 시스템 관리자, 시스템 운영자라 쓴다."]]], "groups": [["A", "시작", "로그인, 회원가입, 비밀번호 찾기. 로그인 전에는 이 네 화면만 열린다."], ["B", "홈", "다음 모임과 해야 할 일을 한눈에 본다. 알림 목록."], ["C", "일정", "팀장의 요청, 가능 시간 입력 두 단계, 후보 투표, 확정과 변경."], ["D", "공지", "공지 목록과 발송 상태, 템플릿으로 공지 쓰기, 템플릿 관리."], ["E", "자료", "분류별 자료실과 내려받기, 자료 올리기. 올리기는 모든 기기에서 되고 PC 앱과 웹은 녹화 폴더를 지정한다."], ["F", "내 정보", "내 역할과 활동 기록, 로그아웃."], ["G", "서비스 관리", "서비스 관리자 화면. 서비스 관리자에게만 보이고 모든 기기에서 열린다. 회원과 역할, 팀과 공지방, 대상별 공지."], ["R", "참고 화면", "데모에는 없지만 흐름을 이해하는 데 필요한 화면. 앱 밖의 결과와 공통 팝업, 상태 화면."]], "screens": [{"id": "A-01", "group": "A", "title": "로그인", "platform": "앱 · PC · 웹", "fr": "FR-29, SR-01", "role": "회원", "summary": "이메일과 비밀번호로 로그인한다. 로그인해야 다른 화면이 열린다.", "items": ["이메일 입력칸. 비어 있거나 이메일 형식이 아니면 넘어가지 않고 칸 아래에 안내가 뜬다.", "비밀번호 입력칸. 글자는 가려서 보인다.", "로그인 버튼. 이메일이나 비밀번호가 틀리면 어느 쪽이 틀렸는지 말하지 않고 함께 안내한다.", "오류 안내 자리. 입력칸 아래 한 줄. 빨간 글자와 문장으로 함께 보인다.", "회원가입으로 가는 링크.", "비밀번호 찾기로 가는 링크."]}, {"id": "A-02", "group": "A", "title": "회원가입", "platform": "앱 · PC · 웹", "fr": "FR-28, SR-01", "role": "회원", "summary": "이메일, 비밀번호, 이름, 아이디, 디스코드 ID 로 가입한다. 가입하면 인증 메일이 간다.", "items": ["이메일. 로그인과 비밀번호 찾기에 쓴다. 이미 가입한 이메일이면 칸 아래에 안내한다.", "비밀번호와 비밀번호 확인. 8자 이상. 두 칸이 다르면 확인 칸 아래에 안내한다.", "이름. 모임에서 부르는 이름.", "아이디. 로그인에는 쓰지 않고 @ 뒤에 보이는 이름으로만 쓴다. 영문 소문자와 숫자 4~20자.", "디스코드 ID. 디스코드 공지에서 이 회원을 부를 때 쓴다.", "가입하기 버튼. 누르면 인증 메일을 보냈다는 팝업이 뜨고 로그인 화면으로 간다. 메일의 링크를 눌러야 가입이 끝난다.", "가입 제한 방식(초대 코드 또는 서비스 관리자 승인)은 미정. 정해지면 이 자리에 칸을 더한다."]}, {"id": "A-03", "group": "A", "title": "비밀번호 찾기", "platform": "앱 · PC · 웹", "fr": "FR-29", "role": "회원", "summary": "가입한 이메일로 비밀번호 재설정 링크를 보낸다. 메일은 Supabase 가 보낸다.", "items": ["이메일 입력칸. 이메일 형식이 아니면 칸 아래에 안내한다.", "재설정 메일 보내기 버튼.", "보냄 안내. 메일의 링크로 새 비밀번호 화면이 열린다는 것과 스팸함 확인. 60초 뒤 다시 보낼 수 있다.", "가입하지 않은 이메일이어도 같은 안내를 보여 준다. 가입 여부를 알려 주지 않는다."]}, {"id": "A-04", "group": "A", "title": "새 비밀번호 정하기", "platform": "앱 · PC · 웹", "fr": "FR-29, SR-01", "role": "회원", "summary": "재설정 메일의 링크를 누르면 열린다. 새 비밀번호를 정하고 로그인 화면으로 간다.", "items": ["어느 계정의 비밀번호를 바꾸는지 보여 준다. 링크가 오래됐으면 비밀번호 찾기로 돌려보낸다.", "새 비밀번호. 8자 이상.", "새 비밀번호 확인. 두 칸이 다르면 칸 아래에 안내한다.", "저장하고 로그인하기 버튼. 저장하면 로그인 화면으로 가고 이메일 칸이 채워져 있다."]}, {"id": "B-01", "group": "B", "title": "홈", "platform": "앱 · PC · 웹", "fr": "FR-11", "role": "회원", "summary": "앱을 열면 처음 보는 화면. 다음 모임과 지금 할 일을 가장 위에 둔다.", "items": ["다음 모임 카드. 확정 일정의 날짜와 시간. 확정 전이면 진행 단계(가능 시간 입력 중, 투표 중)를 보여 준다.", "할 일 카드. 나에게 온 요청(가능 시간 입력, 투표). 누르면 그 화면으로 간다. 할 일이 없으면 카드가 사라진다.", "최근 공지 두 건. 누르면 공지 목록.", "최근 자료 두 건. 누르면 자료실.", "알림 버튼. 읽지 않은 알림 수를 숫자로 붙인다.", "메뉴. 스마트폰은 하단 탭, PC 앱과 웹은 왼쪽 메뉴다. 메뉴 구성은 같고 모든 화면에서 같은 자리다."]}, {"id": "B-02", "group": "B", "title": "알림", "platform": "앱 · PC · 웹", "fr": "FR-07, FR-09, FR-12, FR-13", "role": "회원", "summary": "앱 안의 알림 목록. 같은 내용이 디스코드에도 간다. 한 기기에서 읽으면 다른 기기에서도 읽음이 된다.", "items": ["알림 한 줄. 종류, 내용, 받은 시각. 최신순이다.", "읽지 않은 알림은 앞에 점을 찍는다. 누르면 읽음이 되고 관련 화면으로 간다.", "모두 읽음 버튼.", "알림 종류는 일정 입력 요청, 후보 시간 나옴, 일정 확정, 일정 변경, 자료 올라옴, 공지 다섯 가지다."]}, {"id": "C-01", "group": "C", "title": "일정 현황", "platform": "앱 · PC · 웹", "fr": "FR-06, FR-07, FR-09", "role": "홍길동", "summary": "이번 회차가 어느 단계인지와 누가 입력을 마쳤는지 본다. 팀장은 여기서 요청을 보낸다.", "items": ["단계 표시. 요청 전, 가능 시간 입력, 투표, 확정 네 단계 중 지금 단계를 강조한다.", "대상 주와 진행 예상 시간. 팀장이 요청할 때 정한 값이다.", "참여자별 제출 상태. 제출 완료, 입력 중. 전원이 제출하면 후보 시간이 자동으로 나온다.", "내 할 일 버튼. 단계에 따라 가능 시간 입력하기, 투표하기, 확정 일정 보기로 바뀐다.", "일정 요청 보내기 버튼. 팀장에게만 보인다. 이미 진행 중인 회차가 있으면 누를 수 없다.", "다른 회원 제출 재촉 버튼. 팀장에게만 보인다. 아직 안 낸 사람에게 디스코드 알림을 다시 보낸다."]}, {"id": "C-02", "group": "C", "title": "일정 요청 만들기", "platform": "앱 · PC · 웹", "fr": "FR-06, FR-07", "role": "홍길동", "summary": "팀장이 대상 주와 진행 예상 시간을 정하고 참여자에게 가능 시간 입력을 요청한다.", "items": ["대상 주 고르기. 다음 주가 기본값이다.", "진행 예상 시간. 30분 단위. 1시간 30분이 기본값이다. 후보 시간은 이 길이가 들어가는 구간만 나온다.", "참여자. 팀원 전체가 기본으로 체크된다. 빠질 사람은 체크를 끈다.", "입력 마감. 기본은 요청 뒤 2일. 마감이 지나면 낸 사람만으로 후보를 낼지는 미정이다.", "요청 보내기 버튼. 누르면 참여자에게 앱 알림과 디스코드 알림이 간다."]}, {"id": "C-03", "group": "C", "title": "가능 시간 입력 1단계 날 고르기", "platform": "앱 · PC · 웹", "fr": "FR-08", "role": "회원", "summary": "안 되는 날과 바뀔 수도 있는 날만 먼저 고른다. 나머지 날은 되는 날로 본다.", "items": ["단계 표시 1/2. 다음 단계에서 시간을 정한다는 것을 보여 준다.", "월간과 주간 보기 전환. 두 보기에서 표시한 날은 같다.", "날 칸. 한 번 누르면 안 됨, 두 번 누르면 바뀔 수도 있음, 세 번 누르면 되는 날로 돌아온다.", "표시 설명. 안 됨은 빗금, 바뀔 수도 있음은 점선 테두리, 되는 날은 빈 칸. 색에만 기대지 않는다.", "다음 버튼. 되는 날이 하루도 없으면 확인 팝업을 띄운다.", "대상 주 밖의 날은 흐리게 두고 누를 수 없다."]}, {"id": "C-04", "group": "C", "title": "가능 시간 입력 2단계 시간 정하기", "platform": "앱 · PC · 웹", "fr": "FR-08, FR-09", "role": "회원", "summary": "되는 날마다 가능한 시간대를 정하고 제출한다. 평일 19~23시, 주말 14~22시가 미리 채워져 있다.", "items": ["단계 표시 2/2.", "날짜 줄. 되는 날과 바뀔 수도 있는 날만 나온다. 안 되는 날은 나오지 않는다.", "시작과 끝 시각. 30분 단위. 미리 채운 값을 그대로 두면 그 시간대로 제출된다.", "시간대 막대. 고른 시간대를 하루 막대 위에 칠해 보여 준다.", "바뀔 수도 있는 날 표시. 이 날이 들어간 후보는 2순위로 나온다.", "제출 버튼. 제출하면 이 회차의 내 입력이 확정된다. 전원이 제출하면 후보 시간이 모두에게 뜬다."]}, {"id": "C-05", "group": "C", "title": "후보 시간 투표", "platform": "앱 · PC · 웹", "fr": "FR-09, FR-10", "role": "회원", "summary": "모두의 가능 시간이 겹치고 진행 예상 시간이 들어가는 후보에 투표한다.", "items": ["후보 한 줄. 날짜, 시작과 끝, 겹치는 구간 전체. 1순위 후보가 먼저, 같은 순위는 날짜순이다.", "2순위 표시. 누군가 바뀔 수도 있다고 한 날이 들어간 후보다. 누구의 날인지 함께 쓴다.", "투표 체크. 여러 개를 고를 수 있다. 하나만 고르게 할지는 회의 뒤 기재.", "현재 득표와 투표한 사람 수.", "투표하기 버튼. 전원이 투표하면 최다 득표 후보로 자동 확정된다. 동점이면 날짜가 빠른 쪽.", "후보가 하나도 없을 때는 가능 시간을 다시 받자는 안내와 팀장용 다시 요청 버튼을 보여 준다."]}, {"id": "C-06", "group": "C", "title": "확정 일정과 일정 변경", "platform": "앱 · PC · 웹", "fr": "FR-11, FR-12, FR-13", "role": "홍길동", "summary": "확정된 발표 시간을 보여 준다. 팀장이 변경을 시작하면 전원에게 알리고 다시 투표한다.", "items": ["확정 일정 카드. 날짜, 시간, 확정 시각. 디스코드 공지방에 자동 공지된 것을 함께 표시한다.", "캘린더에 추가 버튼. 휴대폰 캘린더에 일정을 넣는다.", "투표 결과. 후보별 득표.", "일정 변경 버튼. 팀장에게만 보인다. 되돌리기 어려운 동작이라 빨간 글자로 둔다.", "변경 확인 팝업. 사유를 적고 변경하면 지금 확정은 변경으로 취소되고 전원에게 알림이 간다. 곧바로 후보 투표(C-05)가 다시 열린다.", "변경 이력. 취소된 확정은 줄을 긋고 남긴다."]}, {"id": "D-01", "group": "D", "title": "공지 목록", "platform": "앱 · PC · 웹", "fr": "FR-02, FR-03, RR-01", "role": "홍길동", "summary": "보낸 공지와 임시 저장한 공지를 본다. 발송 상태를 글자 뱃지로 보여 준다.", "items": ["공지 한 줄. 제목, 대상, 작성자, 시각. 최신순이다.", "상태 뱃지. 임시저장, 대기, 발송, 실패.", "실패한 공지의 다시 보내기 버튼. 실패를 조용히 넘기지 않는다.", "임시저장 공지를 누르면 쓰던 내용 그대로 작성 화면이 열린다.", "공지 쓰기 버튼. 팀장과 서비스 관리자에게만 보인다. 부팀장과 회원은 목록만 본다.", "템플릿 관리로 가는 버튼."]}, {"id": "D-02", "group": "D", "title": "공지 작성", "platform": "앱 · PC · 웹", "fr": "FR-01, FR-02, FR-03, FR-25, FR-26", "role": "홍길동", "summary": "템플릿을 고르고 빈칸만 채우면 공지가 된다. 임시 저장하기와 발송하기가 따로 있다.", "items": ["템플릿 고르기. 템플릿을 바꾸면 아래 빈칸이 바뀐다. 자유 공지를 고르면 본문을 직접 쓴다.", "빈칸 입력. 템플릿의 {빈칸} 마다 칸이 하나. 확정 일정이 있으면 날짜와 시간은 미리 채운다.", "대상 고르기. 팀장은 부팀장·팀원, 서비스 관리자는 특정인, 팀장, 팀장·부팀장, 전체. 대상에 따라 보낼 공지방이 정해진다.", "미리보기. 디스코드에 올라갈 모양 그대로 보여 준다.", "임시 저장하기. 공지방에는 보내지 않고 목록에 임시저장으로 남긴다.", "발송하기. 확인 팝업 뒤 공지방으로 보낸다. 10초 안에 도착해야 한다. 실패하면 목록에 실패로 남는다."]}, {"id": "D-03", "group": "D", "title": "템플릿 관리", "platform": "앱 · PC · 웹", "fr": "FR-01", "role": "홍길동", "summary": "공지 템플릿을 만들고 고친다. 본문에 {빈칸} 을 넣으면 작성 화면에서 입력칸이 된다.", "items": ["템플릿 목록. 이름과 마지막 수정 시각.", "템플릿 이름.", "본문 틀. {날짜}, {발표자} 처럼 중괄호로 빈칸을 만든다.", "빈칸 넣기 버튼. 자주 쓰는 빈칸을 눌러 커서 자리에 넣는다.", "찾은 빈칸 목록. 본문에서 읽어 낸 빈칸을 보여 준다.", "저장 버튼. 이 템플릿으로 이미 보낸 공지는 바뀌지 않는다."]}, {"id": "E-01", "group": "E", "title": "자료실", "platform": "앱 · PC · 웹", "fr": "FR-18, FR-19, SR-06", "role": "회원", "summary": "올라온 자료를 분류별로 보고 내려받는다.", "items": ["분류 탭. 공지, 템플릿, 노하우, 기록. 기록이 녹화 영상 자리다.", "검색. 파일 이름으로 찾는다.", "자료 한 줄. 파일 이름, 크기, 올린 사람, 올린 날. 최신순이다.", "내려받기 버튼. 누르면 휴대폰에 저장한다. 큰 영상은 와이파이에서 받으라고 안내한다.", "분류에 자료가 없으면 빈 상태 안내를 보여 준다.", "자료 올리기 버튼. 모든 기기에서 자료 올리기(E-02)로 간다."]}, {"id": "E-02", "group": "E", "title": "자료 올리기", "platform": "앱 · PC · 웹", "fr": "FR-14, FR-15, FR-16, FR-17, PR-06, RR-03", "role": "회원", "summary": "모든 기기에서 자료를 올린다. PC 앱은 녹화 폴더를 늘 지켜보고, 웹은 Chrome·Edge 에서 폴더를 지정한다. 스마트폰은 파일을 골라 올린다.", "items": ["파일 출처. PC 앱과 웹은 지정 폴더 경로와 폴더 바꾸기, 스마트폰은 파일 고르기. 정한 폴더는 다음에도 기억한다.", "새로 고침. 폴더를 다시 읽는다. 새 파일은 새 파일 표시가 붙는다.", "파일 목록. 이름, 크기, 만든 시각, 올림 상태. 최신순이다. 스마트폰은 목록형, PC 앱과 웹은 표로 보인다.", "올리기. 누르면 확인 팝업에서 파일과 분류를 한 번 더 보여 준다.", "끌어다 놓기 영역. PC 앱과 웹에서 폴더 밖의 파일도 끌어 올린다. 스마트폰은 다른 앱의 공유하기로 받는다.", "진행률. 파일마다 퍼센트와 남은 시간. 중단되면 이어 올리고, 실패한 파일은 자료실에 나오지 않는다.", "올리기가 끝나면 자료 올림 공지를 바로 쓸 수 있는 버튼."]}, {"id": "F-01", "group": "F", "title": "내 정보와 활동 기록", "platform": "앱 · PC · 웹", "fr": "FR-30, FR-20, FR-23", "role": "홍길동", "summary": "내 역할과 활동 기록을 본다. 다시 로그인해도, 다른 기기에서 열어도 기록이 그대로 있다.", "items": ["내 이름, 아이디, 이메일, 서비스 관리자 여부, 팀 역할, 팀, 디스코드 ID.", "활동 기록. 가능 시간 제출, 투표, 올린 자료, 보낸 공지. 최신순이다.", "기록을 누르면 그 화면으로 간다.", "로그아웃. 실수로 누르지 않게 목록 맨 아래에 떨어뜨려 둔다. 확인 팝업을 띄운다.", "서비스 관리자 화면 버튼. 서비스 관리자에게만 보인다. 스마트폰에서는 여기서 서비스 관리자 화면을 연다."]}, {"id": "G-01", "group": "G", "title": "회원과 역할 관리", "platform": "앱 · PC · 웹", "fr": "FR-20, FR-22, FR-23, SR-03", "role": "홍길동", "summary": "서비스 관리자가 회원의 팀 역할과 서비스 관리자 권한을 정한다. 서비스 관리자는 팀 역할과 겹칠 수 있다.", "items": ["서비스 관리자 메뉴. 회원과 역할, 팀과 공지방, 대상별 공지.", "회원 표. 이름, 디스코드 ID, 팀 역할, 서비스 관리자, 가입일. 스마트폰에서는 디스코드 ID 와 가입일을 숨긴다.", "팀 역할 고르기. 팀장, 부팀장, 회원 중 하나.", "규칙 경고. 팀장 1명, 부팀장 1명 이상, 서비스 관리자 1명 이상이 아니면 빨간 안내가 뜨고 저장이 막힌다.", "서비스 관리자 권한. 팀 역할과 따로 켠다. 예시로 홍길동는 서비스 관리자이면서 팀장이다. 자기 서비스 관리자 권한은 스스로 풀 수 없고 다른 서비스 관리자가 푼다.", "저장 버튼. 역할 검사는 서버에서도 한다. 서비스 관리자가 아니면 이 화면 대신 권한 없음 화면이 보인다."]}, {"id": "G-02", "group": "G", "title": "팀과 공지방 관리", "platform": "앱 · PC · 웹", "fr": "FR-04, FR-05, FR-27, SR-04", "role": "홍길동", "summary": "팀과 디스코드 공지방을 짝지어 둔다. 1차는 웹훅 주소를 직접 넣는다.", "items": ["팀 카드. 팀 이름, 팀장, 인원.", "공지방. 채널 이름과 웹훅 주소. 주소는 가려서 보이고 바꾸기로만 고친다.", "테스트 메시지 보내기. 짝지은 공지방에 시험 글을 올려 연결을 확인한다.", "운영진 공지방. 팀장·부팀장 대상 공지가 가는 곳.", "새 팀 만들기. 팀 이름과 공지방 주소를 넣는다.", "공지방 자동 생성과 삭제는 봇 방식이 필요해 미정(FR-05, FR-27)이다. 자리만 표시한다."]}, {"id": "G-03", "group": "G", "title": "대상별 공지 발송", "platform": "앱 · PC · 웹", "fr": "FR-24, FR-26", "role": "홍길동", "summary": "서비스 관리자가 대상을 골라 공지를 보낸다. 대상에 따라 공지방이 달라진다.", "items": ["대상 고르기. 특정인, 팀장, 팀장·부팀장, 전체.", "특정인을 고르면 회원 고르기가 열린다. 특정인에게 어디로 보낼지(개인 메시지 등)는 미정이다.", "보낼 곳 안내. 고른 대상에 따라 어느 공지방으로 가는지 보여 준다.", "템플릿과 본문. 모바일의 공지 작성과 같은 부품이다.", "임시 저장하기와 발송하기. 모바일과 같은 규칙이다."]}], "extra": [{"id": "R-01", "group": "R", "title": "디스코드 공지방", "platform": "디스코드", "fr": "FR-03, FR-13, FR-26", "summary": "앱이 보낸 공지가 디스코드에서 어떻게 보이는지. 앱 밖의 결과라 데모에는 옆 패널로만 있다.", "items": ["채널 이름. 팀 공지방.", "확정 일정 자동 공지. 날짜, 시간, 투표 결과를 임베드로 보낸다.", "템플릿 공지. 템플릿 이름이 제목이 되고 빈칸을 채운 본문이 들어간다.", "일정 변경 공지. 이전 확정을 취소했다는 것과 다시 투표하라는 안내.", "보낸 곳 표시. 앱 이름으로 올라간다. 웹훅 방식이면 봇 표시가 붙는다."]}, {"id": "R-02", "group": "R", "title": "휴대폰 알림", "platform": "휴대폰", "fr": "FR-07, FR-12", "summary": "알림은 앱 안 알림 목록과 디스코드 알림으로 받는다. 휴대폰과 PC 에 디스코드 알림이 뜬다.", "items": ["디스코드 앱의 알림. 공지방에 글이 올라오면 휴대폰에 뜬다.", "일정 입력 요청 알림. 누르면 디스코드가 열리고, 글 안의 링크로 앱을 연다."]}, {"id": "R-03", "group": "R", "title": "공통 팝업", "platform": "공통", "fr": "공통", "summary": "여러 화면이 같이 쓰는 팝업 다섯 가지. 화면마다 따로 그리지 않는다.", "items": ["확인형. 제목, 한두 줄 설명, 취소와 확인. 확인이 오른쪽이고 강조색이다.", "위험 확인형. 일정 변경, 로그아웃처럼 되돌리기 어려운 동작. 확인 버튼이 빨강이다.", "입력형. 사유처럼 짧은 글을 받는다.", "선택형. 아래에서 올라오는 시트. 분류 고르기, 대상 고르기.", "토스트. 저장됨, 보냈음처럼 결과만 알린다. 3초 뒤 사라진다."]}, {"id": "R-04", "group": "R", "title": "상태 화면", "platform": "공통", "fr": "PR-02, RR-01", "summary": "목록 화면이 데이터 없이, 불러오는 중에, 실패했을 때 보이는 모양.", "items": ["불러오는 중. 목록 줄 모양의 회색 틀을 보여 준다. 3초 안에 떠야 한다.", "빈 목록. 무엇이 없는지 한 줄, 할 수 있는 일 버튼 하나.", "오류. 무엇이 안 됐는지 한 줄과 다시 시도 버튼.", "권한 없음. 이 화면을 쓸 수 있는 역할을 알려 준다."]}, {"id": "R-05", "group": "R", "title": "PC 앱 첫 실행", "platform": "PC 앱", "fr": "FR-14, FR-29", "summary": "PC 앱을 처음 켜면 로그인하고 녹화 폴더를 정한다. 웹도 Chrome·Edge 에서 같은 단계를 거친다.", "items": ["로그인. 스마트폰 앱, 웹과 같은 계정이다.", "폴더 지정 안내. 녹화 프로그램이 파일을 저장하는 폴더를 고르라고 한다.", "운영체제의 폴더 선택 창. 앱이 그리는 화면이 아니다.", "지정한 폴더 경로. 다음 실행부터는 이 단계를 건너뛴다."]}], "common": {"nav": [["공통", "모든 화면이 스마트폰 앱, PC 앱, 웹에서 같은 기능으로 동작한다. 한 기기에서 바꾼 내용은 다른 기기에 바로 보인다"], ["스마트폰 앱", "하단 탭 5개(홈, 일정, 공지, 자료, 내 정보). 자료 올리기는 자료실에서 연다. 서비스 관리자는 내 정보의 관리자 화면 버튼으로 관리 화면을 연다"], ["PC 앱", "왼쪽 메뉴(홈, 일정, 공지, 자료실, 자료 올리기, 내 정보, 관리자). 관리자 메뉴는 서비스 관리자에게만 보인다. 녹화 폴더를 늘 지켜본다"], ["웹", "PC 앱과 같은 배치. 폴더 지정은 Chrome·Edge 에서만 되고 다른 브라우저는 파일 고르기와 끌어다 놓기"]], "roles": [["화면", "서비스 관리자", "팀장", "부팀장", "회원"], ["일정 요청 보내기, 재촉", "O", "O", "-", "-"], ["일정 변경 시작", "O", "O", "-", "-"], ["공지 쓰기", "O (대상 4종)", "O (부팀장·팀원)", "-", "-"], ["템플릿 관리", "O", "O", "-", "-"], ["가능 시간 입력, 투표", "O", "O", "O", "O"], ["자료실, 자료 올리기", "O", "O", "O", "O"], ["서비스 관리자 화면", "O", "-", "-", "-"]], "notify": [["알림", "받는 사람", "앱 안", "디스코드"], ["일정 입력 요청", "참여자", "O", "팀 공지방"], ["후보 시간 나옴", "참여자", "O", "팀 공지방"], ["일정 확정", "팀 전체", "O", "팀 공지방, 자동 공지"], ["일정 변경, 다시 투표", "참여자 전원", "O", "팀 공지방"], ["자료 올라옴", "팀 전체", "O", "공지를 보낼 때만"]], "roles_note": "서비스 관리자는 팀 역할(팀장, 부팀장, 회원)과 겹칠 수 있다. 겹치면 두 역할의 기능을 모두 쓴다. 예시 데이터는 홍길동 = 서비스 관리자 + 팀장, 이영희 = 부팀장, 김철수·박민수 = 회원이다."}, "history": [["v1.0.0", "2026/09/26", "초안. 1차 필수 기능 화면 18개와 참고 화면 5개. 일정 입력은 사용자 제안안(옵션 D)으로 그렸다", "전체", "홍길동"], ["v1.1.0", "2026/09/27", "모든 화면을 스마트폰 앱, PC 앱, 웹에서 같이 쓰게 바꿈. 관리자는 팀 역할과 겹칠 수 있음. 2차 기능 표시 뺌(운영자 제외)", "전체", "홍길동"], ["v1.2.0", "2026/09/27", "용어 정리. 앱 안 역할은 서비스 관리자·운영자, 서버와 DB 를 다루는 사람은 시스템 관리자·운영자. 화면 글자는 그대로", "개요, 설명 전체", "홍길동"], ["v1.3.0", "2026/09/27", "화면에서 2차 기능(서비스 운영자) 표시를 모두 뺌", "G-01, 개요", "홍길동"], ["v1.4.0", "2026/09/27", "이메일 로그인으로 바꿈(A-01, A-02). 비밀번호 찾기(A-03), 새 비밀번호(A-04) 추가. 기술 스택과 일정 입력 방식은 정해진 것으로 고침", "A-01~A-04, 개요, C-03", "홍길동"]]};
+const Q = new URLSearchParams(location.search);
+const SHOT = Q.has('shot'), WIRE = Q.has('wire'), MARKS = Q.has('marks');
+const ONLY = Q.get('only') ? Q.get('only').split(',').map(Number) : null;
+if (SHOT) document.body.classList.add('shot');
+if (WIRE) document.body.classList.add('wire');
+
+/* ---------- 아이콘 ---------- */
+const I = {
+  home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  mega:'<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M18 9a4 4 0 0 1 0 6"/>',
+  folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  back:'<path d="M15 5l-7 7 7 7"/>',
+  refresh:'<path d="M20 11a8 8 0 1 0-2 5.5"/><path d="M20 4v7h-7"/>',
+  down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  up:'<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',
+  check:'<path d="M5 12l5 5 9-10"/>',
+  file:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/>',
+  video:'<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10l5-3v10l-5-3z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  search:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/>',
+  send:'<path d="M4 12l16-8-6 16-3-6z"/>',
+  vote:'<path d="M4 13l4 4 12-12"/>',
+};
+const ic = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = h => `${String(Math.floor(h)).padStart(2,'0')}:${h % 1 ? '30' : '00'}`;
+const dur = h => `${Math.floor(h) ? Math.floor(h) + '시간' : ''}${h % 1 ? ' 30분' : ''}`.trim();
+
+/* ---------- 예시 데이터 ---------- */
+const PEOPLE = [
+  {name:'홍길동', id:'gildong', email:'gildong@example.com', role:'팀장', admin:true, dc:'gildong', joined:'2026-09-21'},
+  {name:'김철수', id:'cheolsu', email:'cheolsu@example.com', role:'회원', dc:'cheolsu.k', joined:'2026-09-21'},
+  {name:'이영희', id:'younghee', email:'younghee@example.com', role:'부팀장', dc:'jm_jeon', joined:'2026-09-22'},
+  {name:'박민수', id:'minsu', email:'minsu@example.com', role:'회원', dc:'kmshin', joined:'2026-09-22'},
+];
+const ROLE_OF = {'관리자':'홍길동','팀장':'홍길동','부팀장':'이영희','회원':'박민수'};
+const LEAD = '홍길동';
+const WEEK = ['9/28','9/29','9/30','10/1','10/2','10/3','10/4'];
+const DOW = ['월','화','수','목','금','토','일'];
+const PRESET = { // 다른 회원의 가능 시간 예시
+  '김철수': [[20,23],null,[19,22],[20,23],[19,24],[14,18],[14,22]],
+  '이영희': [[19,22],[20,23],[20,23],'maybe',[21,22],[10,16],[15,20]],
+  '박민수': [[21,23],[19,22],[19,21.5],[20,22],null,[13,17],[16,21]],
+  '홍길동': [[19,21],[19,23],[19,23],[19,23],[20,23],null,[14,22]],
+};
+const defRange = i => i >= 5 ? [14,22] : [19,23];
+
+let S;
+function fresh(who) {
+  const me = ROLE_OF[who] || who || '박민수';
+  const avail = {};
+  PEOPLE.forEach(p => {
+    const days = PRESET[p.name].map((v, i) => v === null ? {st:'no'} : v === 'maybe' ? {st:'maybe', s:defRange(i)[0], e:defRange(i)[1]} : {st:'ok', s:v[0], e:v[1]});
+    avail[p.name] = {days, submitted: p.name === '김철수' || p.name === '이영희'};
+  });
+  avail[me] = {days: WEEK.map((_, i) => ({st:'ok', s:defRange(i)[0], e:defRange(i)[1]})), submitted:false};
+  return {
+    me, loggedIn:false, screen:'A-01', dev: ['mob','pc','web'].includes(Q.get('dev')) ? Q.get('dev') : 'mob', desc:false,
+    stage:'input', round:{week:'9/28 주 (9/28~10/4)', dur:1.5, deadline:'9/30(수) 23:59', n:1},
+    avail, calView:'week', votes:{}, myVotes:new Set(), cands:[], confirmed:null, history:[],
+    form:{}, err:{}, modal:null, toast:null,
+    notices:[
+      {id:3, title:'10월 발표 순서 안내', target:'부팀장·팀원', author:'홍길동', time:'09-26 21:10', status:'임시저장', tpl:'자유 공지', body:'10월 발표 순서는 다음 주에 정합니다.'},
+      {id:2, title:'자료 올림 안내', target:'부팀장·팀원', author:'홍길동', time:'09-24 22:41', status:'실패', tpl:'자료 올림 안내', body:'이영희님의 발표 자료가 올라왔습니다. 자료실 노하우에서 받으세요.'},
+      {id:1, title:'주간 모임 공지', target:'부팀장·팀원', author:'홍길동', time:'09-21 20:02', status:'발송', tpl:'주간 모임 공지', body:'이번 주 주간발표회는 9/24(수) 20:00에 열립니다.'},
+    ],
+    tpls:[
+      {name:'주간 모임 공지', body:'이번 주 주간발표회는 {날짜} {시간}에 열립니다.\n발표자: {발표자}\n주제: {주제}\n장소: {장소}', updated:'09-21'},
+      {name:'자료 올림 안내', body:'{발표자}님의 발표 자료가 올라왔습니다. 자료실 {분류}에서 받으세요.', updated:'09-22'},
+      {name:'자유 공지', body:'', updated:'-'},
+    ],
+    files:[
+      {name:'9-21 발표 녹화_김철수.mp4', size:'1.2 GB', cat:'기록', by:'김철수', date:'09-21'},
+      {name:'9-14 발표 녹화_이영희.mp4', size:'980 MB', cat:'기록', by:'이영희', date:'09-14'},
+      {name:'OBS 녹화 설정 정리.pdf', size:'2.1 MB', cat:'노하우', by:'이영희', date:'09-24'},
+      {name:'대충 발표 자료 템플릿.pptx', size:'5.4 MB', cat:'템플릿', by:'홍길동', date:'09-22'},
+      {name:'모임 규칙.pdf', size:'180 KB', cat:'공지', by:'홍길동', date:'09-21'},
+    ],
+    fileCat:'기록', fileQ:'',
+    folder:'D:\\녹화\\주간발표회',
+    local:[
+      {name:'2026-09-21 20-03-11.mp4', size:'1.2 GB', date:'09-21 21:40', up:true},
+      {name:'2026-09-14 20-01-52.mp4', size:'980 MB', date:'09-14 21:31', up:true},
+      {name:'2026-09-24 발표 연습.mp4', size:'640 MB', date:'09-24 23:02', up:false},
+    ],
+    sel:new Set(), uploads:[], refreshed:false,
+    notifs:[
+      {type:'일정 입력 요청', text:'홍길동님이 9/28 주 가능 시간 입력을 요청했어요. 마감 9/30(수).', time:'09-26 20:30', read:false, go:'C-03'},
+      {type:'공지', text:'주간 모임 공지가 올라왔어요.', time:'09-21 20:02', read:true, go:'D-01'},
+      {type:'자료 올라옴', text:'9-21 발표 녹화_김철수.mp4 가 기록에 올라왔어요.', time:'09-21 21:45', read:true, go:'E-01'},
+    ],
+    activity:[
+      {who:'*', text:'9-21 주 후보 시간에 투표', time:'09-20 22:10', go:'C-06'},
+      {who:'*', text:'9-21 주 가능 시간 제출', time:'09-19 21:03', go:'C-01'},
+    ],
+    roles: Object.fromEntries(PEOPLE.map(p => [p.name, p.role])),
+    admins: new Set(PEOPLE.filter(p => p.admin).map(p => p.name)),
+    teams:[{name:'주간발표회', ch:'주간발표회-공지', hook:'https://discord.com/api/webhooks/1289…/••••••••', staff:'운영진', staffHook:'https://discord.com/api/webhooks/1290…/••••••••'}],
+    admTab:'G-01', admTarget:'전체', admPerson:'박민수',
+    dc:[{ch:'주간발표회-공지', title:'주간 모임 공지', body:'이번 주 주간발표회는 9/24(수) 20:00에 열립니다.\n발표자: 김철수\n주제: 대충 만든 사이드 프로젝트\n장소: 디스코드 음성 채널', time:'09-21 20:02'}],
+  };
+}
+S = fresh();
+
+const me = () => S.me;
+const isAdmin = () => S.admins.has(me());
+const isLead = () => S.roles[me()] === '팀장' || isAdmin();
+const roleLabel = n => [S.admins.has(n) ? '관리자' : '', S.roles[n]].filter(Boolean).join(', ');
+const unread = () => S.notifs.filter(n => !n.read).length;
+
+/* ---------- 후보 시간 계산 ---------- */
+function computeCands() {
+  const out = [];
+  WEEK.forEach((d, i) => {
+    let s = 0, e = 24, maybeBy = [], ok = true;
+    for (const p of PEOPLE) {
+      const x = S.avail[p.name].days[i];
+      if (x.st === 'no') { ok = false; break; }
+      if (x.st === 'maybe') maybeBy.push(p.name);
+      s = Math.max(s, x.s); e = Math.min(e, x.e);
+    }
+    if (ok && e - s >= S.round.dur) out.push({key:i, day:i, s, e, start:s, end:s + S.round.dur, prio: maybeBy.length ? 2 : 1, maybeBy});
+  });
+  out.sort((a, b) => a.prio - b.prio || a.day - b.day);
+  S.cands = out;
+  S.votes = Object.fromEntries(out.map(c => [c.key, new Set()]));
+  const first = out.find(c => c.prio === 1) || out[0];
+  const last = out[out.length - 1];
+  if (first) { S.votes[first.key].add('김철수'); S.votes[first.key].add('이영희'); }
+  if (last) { S.votes[last.key].add('이영희'); S.votes[last.key].add('박민수'); }
+  if (first && S.votes[first.key]) S.votes[first.key].add('홍길동');
+  Object.values(S.votes).forEach(v => v.delete(me()));
+}
+const candLabel = c => `${WEEK[c.day]}(${DOW[c.day]}) ${fmt(c.start)}~${fmt(c.end)}`;
+
+/* ---------- 흐름 동작 ---------- */
+function toast(t) { if (SHOT) return; S.toast = t; render(); clearTimeout(toast.h); toast.h = setTimeout(() => { S.toast = null; render(); }, 2600); }
+function notify(type, text, go) { S.notifs.unshift({type, text, time:'방금', read:false, go}); }
+function discord(ch, title, body) { S.dc.unshift({ch, title, body, time:'방금'}); document.getElementById('dcsel').value = ch; }
+function log(text, go) { S.activity.unshift({who:me(), text, time:'방금', go}); }
+
+function submitAvail() {
+  S.avail[me()].submitted = true;
+  log('9/28 주 가능 시간 제출', 'C-01');
+  S.screen = 'C-01';
+  toast('제출했어요. 다른 회원을 기다립니다');
+  setTimeout(() => {
+    PEOPLE.forEach(p => S.avail[p.name].submitted = true);
+    toVote(true);
+  }, 1600);
+}
+function toVote(announce) {
+  S.stage = 'vote'; computeCands(); S.myVotes = new Set();
+  if (announce) {
+    notify('후보 시간 나옴', `전원이 제출했어요. 후보 ${S.cands.length}개에 투표해 주세요.`, 'C-05');
+    discord('주간발표회-공지', '후보 시간이 나왔습니다', `9/28 주 후보 ${S.cands.length}개\n${S.cands.map(c => '· ' + candLabel(c) + (c.prio === 2 ? ' (2순위)' : '')).join('\n')}\n앱에서 투표해 주세요.`);
+    toast('전원 제출 완료. 후보 시간이 나왔어요');
+  }
+}
+function confirmTop(announce) {
+  if (!S.cands.length) return;
+  const best = [...S.cands].sort((a, b) => S.votes[b.key].size - S.votes[a.key].size || a.day - b.day)[0];
+  S.confirmed = {...best, at:'09-27 22:15', round:S.round.n};
+  S.stage = 'done';
+  if (announce) {
+    notify('일정 확정', `${candLabel(best)} 로 확정됐어요.`, 'C-06');
+    discord('주간발표회-공지', '일정 확정', `9/28 주 발표는 ${candLabel(best)} 입니다.\n득표 ${S.votes[best.key].size}/${PEOPLE.length}\n(자동 공지)`);
+  }
+}
+function castVote() {
+  S.myVotes.forEach(k => S.votes[k].add(me()));
+  log('9/28 주 후보 시간에 투표', 'C-05');
+  toast('투표했어요. 전원이 투표해 자동으로 확정됩니다');
+  setTimeout(() => { confirmTop(true); S.screen = 'C-06'; render(); }, 1400);
+}
+function changeSchedule(reason) {
+  S.history.unshift({...S.confirmed, reason: reason || '사유 없음'});
+  S.confirmed = null; S.round.n++; toVote(false);
+  notify('일정 변경', `팀장이 일정을 바꿨어요. 다시 투표해 주세요. 사유: ${reason || '없음'}`, 'C-05');
+  discord('주간발표회-공지', '일정 변경. 다시 투표해 주세요', `이전 확정 ${candLabel(S.history[0])} 은 취소됐습니다.\n사유: ${reason || '없음'}\n앱에서 다시 투표해 주세요.`);
+  S.modal = null; S.screen = 'C-05';
+  toast('전원에게 알렸어요. 다시 투표가 열렸습니다');
+}
+function sendRequest() {
+  const f = S.form;
+  S.round = {week: f.week || '9/28 주 (9/28~10/4)', dur: +(f.dur || 1.5), deadline:'9/30(수) 23:59', n:1};
+  PEOPLE.forEach(p => S.avail[p.name].submitted = false);
+  S.stage = 'input'; S.confirmed = null; S.history = [];
+  notify('일정 입력 요청', `${S.round.week} 가능 시간을 입력해 주세요. 진행 예상 ${dur(S.round.dur)}.`, 'C-03');
+  discord('주간발표회-공지', '가능 시간 입력 요청', `${S.round.week} 모임 가능 시간을 앱에서 입력해 주세요.\n진행 예상 시간: ${dur(S.round.dur)}\n마감: ${S.round.deadline}`);
+  S.screen = 'C-01'; toast('요청을 보냈어요');
+}
+function tplFields(body) { return [...new Set((body.match(/\{([^}]+)\}/g) || []).map(x => x.slice(1, -1)))]; }
+function fillTpl(body, vals) { return body.replace(/\{([^}]+)\}/g, (m, k) => vals[k] ? vals[k] : m); }
+function composeDefaults(tplName) {
+  const c = S.confirmed;
+  const v = {};
+  if (c) { v['날짜'] = `${WEEK[c.day]}(${DOW[c.day]})`; v['시간'] = fmt(c.start); }
+  if (tplName === '자료 올림 안내') { v['발표자'] = me(); v['분류'] = '기록'; }
+  return v;
+}
+const TARGETS = () => isAdmin() ? ['전체','팀장·부팀장','팀장','특정인'] : ['부팀장·팀원'];
+const CHANNEL = t => ({'특정인':'개인 메시지', '팀장':'운영진', '팀장·부팀장':'운영진'}[t] || '주간발표회-공지');
+function saveNotice(status) {
+  const f = S.form, tpl = S.tpls.find(t => t.name === (f.tpl || '주간 모임 공지'));
+  const body = tpl.name === '자유 공지' ? (f.free || '') : fillTpl(tpl.body, f.vals || {});
+  const target = S.screen === 'G-03' ? S.admTarget : (f.target || TARGETS()[0]);
+  if (S.screen === 'G-03' && target === '특정인') f.person = S.admPerson;
+  const title = f.title || tpl.name;
+  const n = {id:Date.now(), title, target: target === '특정인' ? `특정인 (${f.person || '박민수'})` : target, author:me(), time:'방금', status, tpl:tpl.name, body};
+  if (f.editing) S.notices = S.notices.filter(x => x.id !== f.editing);
+  S.notices.unshift(n);
+  if (status === '대기') {
+    setTimeout(() => { n.status = '발송'; discord(CHANNEL(target), title, body); log(`공지 발송: ${title}`, 'D-01'); render(); }, 900);
+  } else log(`공지 임시 저장: ${title}`, 'D-01');
+  S.modal = null; S.form = {};
+  if (S.screen === 'G-03') { toast(status === '대기' ? '발송했어요' : '임시 저장했어요'); } else { S.screen = 'D-01'; toast(status === '대기' ? '발송 중이에요. 곧 공지방에 올라갑니다' : '임시 저장했어요. 공지방에는 보내지 않았어요'); }
+}
+function startUpload(names, cat) {
+  names.forEach(nm => {
+    const u = {name:nm, p:0, cat, done:false};
+    S.uploads.push(u);
+    const tick = setInterval(() => {
+      u.p = Math.min(100, u.p + 7 + Math.random() * 9);
+      if (u.p >= 100) {
+        clearInterval(tick); u.done = true;
+        const lf = S.local.find(x => x.name === nm); if (lf) { lf.up = true; lf.new = false; }
+        S.files.unshift({name:nm, size: lf ? lf.size : '-', cat, by:me(), date:'09-27'});
+        log(`자료 올림: ${nm}`, 'E-01');
+        notify('자료 올라옴', `${nm} 가 ${cat}에 올라왔어요.`, 'E-01');
+      }
+      render();
+    }, 260);
+  });
+  S.sel = new Set(); S.modal = null;
+}
+
+/* ---------- 화면 조각 ---------- */
+const hdr = (title, opt = {}) => `<div class="hdr">${opt.back ? `<button class="ib" aria-label="뒤로" data-act="go" data-arg="${opt.back}">${ic('back')}</button>` : ''}<h1>${title}</h1>${opt.right || ''}${'bell' in opt ? `<button class="ib" aria-label="알림" data-act="go" data-arg="B-02" data-d="${opt.bell}">${ic('bell')}${unread() ? `<span class="n">${unread()}</span>` : ''}</button>` : ''}</div>`;
+const TABS = [['B-01','home','홈'],['C-01','cal','일정'],['D-01','mega','공지'],['E-01','folder','자료'],['F-01','user','내 정보']];
+const tabOf = id => ({B:'B-01', C:'C-01', D:'D-01', E:'E-01', F:'F-01'}[id[0]]);
+const tabs = (d) => `<nav class="tabs" ${d ? `data-d="${d}"` : ''}>${TABS.map(([id, i, t]) => `<button class="${tabOf(S.screen) === id ? 'on' : ''}" data-act="go" data-arg="${id}">${ic(i, 22)}${t}</button>`).join('')}</nav>`;
+const stageName = {none:'요청 전', input:'가능 시간 입력', vote:'투표', done:'확정'};
+const stageIdx = {none:0, input:1, vote:2, done:3};
+const badgeFor = st => `<span class="badge ${{'발송':'ok','실패':'no','대기':'wait','임시저장':'draft'}[st]}">${st}</span>`;
+function stepper(d) {
+  const k = stageIdx[S.stage];
+  return `<div class="stepper" data-d="${d}">${['요청','가능 시간','투표','확정'].map((t, i) => `<div class="${i < k ? 'done' : i === k ? 'on' : ''}">${t}</div>`).join('')}</div>`;
+}
+
+const SCREENS = {
+'A-01': () => `
+  <div class="auth">
+    <div><div class="brand">주간<em>발표회</em></div><div class="muted">매주 한 번, 대충 발표하는 모임</div></div>
+    <div style="height:18px"></div>
+    <label class="f" data-d="1">이메일<input class="inp" id="lid" type="email" placeholder="이메일" value="${esc(S.form.lid)}"></label>
+    <label class="f" data-d="2">비밀번호<input class="inp" id="lpw" type="password" placeholder="비밀번호" value="${esc(S.form.lpw)}"></label>
+    <div class="err" data-d="4">${S.err.login || ''}</div>
+    <button class="btn pri wide" data-act="login" data-d="3">로그인</button>
+    <div class="between sm"><a data-act="go" data-arg="A-03" data-d="6">비밀번호를 잊었나요?</a><span>처음이신가요? <a data-act="go" data-arg="A-02" data-d="5">회원가입</a></span></div>
+  </div>`,
+'A-02': () => `
+  ${hdr('회원가입', {back:'A-01'})}
+  <div class="body">
+    <label class="f" data-d="1">이메일<input class="inp" id="semail" type="email" placeholder="로그인과 비밀번호 찾기에 쓴다" value="${esc(S.form.semail)}"><span class="err">${S.err.semail || ''}</span></label>
+    <div data-d="2" style="display:flex;flex-direction:column;gap:10px">
+      <label class="f">비밀번호<input class="inp" id="spw" type="password" placeholder="8자 이상" value="${esc(S.form.spw)}"></label>
+      <label class="f">비밀번호 확인<input class="inp" id="spw2" type="password" value="${esc(S.form.spw2)}"><span class="err">${S.err.spw || ''}</span></label>
+    </div>
+    <label class="f" data-d="3">이름<input class="inp" id="sname" placeholder="모임에서 부르는 이름" value="${esc(S.form.sname)}"><span class="err">${S.err.sname || ''}</span></label>
+    <label class="f" data-d="4">아이디<input class="inp" id="sid" placeholder="@ 뒤에 보이는 이름. 영문 소문자, 숫자" value="${esc(S.form.sid)}"><span class="err">${S.err.sid || ''}</span></label>
+    <label class="f" data-d="5">디스코드 ID<input class="inp" id="sdc" placeholder="예: kmshin" value="${esc(S.form.sdc)}"><span class="hint">디스코드 공지에서 나를 부를 때 쓴다</span></label>
+    <div class="slot" data-d="7">초대 코드 또는 관리자 승인 칸 자리. 가입 제한 방식은 회의 뒤 정한다</div>
+    <button class="btn pri wide" data-act="signup" data-d="6">가입하기</button>
+  </div>`,
+'A-03': () => `
+  ${hdr('비밀번호 찾기', {back:'A-01'})}
+  <div class="body">
+    <div class="muted">가입한 이메일로 비밀번호를 새로 정하는 링크를 보내요.</div>
+    <label class="f" data-d="1">이메일<input class="inp" id="remail" type="email" placeholder="이메일" value="${esc(S.form.remail)}"><span class="err">${S.err.remail || ''}</span></label>
+    <button class="btn pri wide" data-act="sendreset" data-d="2">재설정 메일 보내기</button>
+    ${S.form.resetSent ? `<div class="card" data-d="3"><div class="b">메일을 보냈어요</div><div class="sm muted">메일의 링크를 누르면 새 비밀번호를 정하는 화면이 열려요. 메일이 안 오면 스팸함을 보세요.</div>
+      <div class="between" style="margin-top:8px"><span class="hint">60초 뒤 다시 보낼 수 있어요</span><a data-act="go" data-arg="A-04">(데모) 메일 링크 열기</a></div></div>` : ''}
+    <div class="hint" data-d="4">가입하지 않은 이메일이어도 같은 안내를 보여 줘요</div>
+  </div>`,
+'A-04': () => `
+  ${hdr('새 비밀번호', {back:'A-01'})}
+  <div class="body">
+    <div class="card" data-d="1"><div class="b">메일 링크로 들어왔어요</div><div class="sm muted">${esc(S.form.remail || 'minsu@example.com')} 계정의 비밀번호를 새로 정해요.</div></div>
+    <label class="f" data-d="2">새 비밀번호<input class="inp" id="npw" type="password" placeholder="8자 이상" value="${esc(S.form.npw)}"></label>
+    <label class="f" data-d="3">새 비밀번호 확인<input class="inp" id="npw2" type="password" value="${esc(S.form.npw2)}"><span class="err">${S.err.npw || ''}</span></label>
+    <button class="btn pri wide" data-act="savepw" data-d="4">저장하고 로그인하기</button>
+  </div>`,
+'B-01': () => {
+  const c = S.confirmed, mine = S.avail[me()];
+  const todo = S.stage === 'input' && !mine.submitted ? {t:'가능 시간을 입력해 주세요', s:`${S.round.week} · 마감 ${S.round.deadline}`, go:'C-03'}
+    : S.stage === 'vote' && ![...S.myVotes].length && !Object.values(S.votes).some(v => v.has(me())) ? {t:'후보 시간에 투표해 주세요', s:`후보 ${S.cands.length}개`, go:'C-05'} : null;
+  return `${hdr('홈', {bell:5})}
+  <div class="body">
+    <div class="card hero" data-d="1">
+      <div class="ct"><span>다음 모임</span><span>${S.round.week.split(' ')[0]}</span></div>
+      ${c ? `<div class="big">${WEEK[c.day]}(${DOW[c.day]}) ${fmt(c.start)}</div><div class="muted">${fmt(c.start)}~${fmt(c.end)} · 디스코드 음성 채널</div>`
+          : `<div class="big">아직 안 정해졌어요</div><div class="muted">지금 단계: ${stageName[S.stage]}</div>`}
+    </div>
+    ${todo ? `<div class="card todo" data-d="2" data-act="go" data-arg="${todo.go}" style="cursor:pointer"><div class="between"><div><div class="b">${todo.t}</div><div class="sm muted">${todo.s}</div></div>${ic('back', 18).replace('M15 5l-7 7 7 7', 'M9 5l7 7-7 7')}</div></div>` : ''}
+    <div class="card" data-d="3"><div class="ct"><span>최근 공지</span><a data-act="go" data-arg="D-01">전체</a></div>
+      <div class="list">${S.notices.filter(n => n.status === '발송').slice(0, 2).map(n => `<div class="li" data-act="go" data-arg="D-01"><div class="grow"><div class="t">${esc(n.title)}</div><div class="sm faint">${n.time} · ${n.author}</div></div></div>`).join('') || '<div class="faint sm">아직 없어요</div>'}</div></div>
+    <div class="card" data-d="4"><div class="ct"><span>최근 자료</span><a data-act="go" data-arg="E-01">자료실</a></div>
+      <div class="list">${S.files.slice(0, 2).map(f => `<div class="li" data-act="go" data-arg="E-01"><div class="ico">${ic(f.name.endsWith('.mp4') ? 'video' : 'file', 18)}</div><div class="grow"><div class="t">${esc(f.name)}</div><div class="sm faint">${f.cat} · ${f.size} · ${f.by}</div></div></div>`).join('')}</div></div>
+  </div>`; },
+'B-02': () => `${hdr('알림', {back:'B-01', right:`<button class="btn sm ghost" data-act="readall" data-d="3">모두 읽음</button>`})}
+  <div class="body"><div class="list">
+    ${S.notifs.map((n, i) => `<div class="li" data-act="opennotif" data-arg="${i}" ${i === 0 ? 'data-d="1"' : ''}>
+      <span ${i === 0 ? 'data-d="2"' : ''} style="width:8px;height:8px;border-radius:50%;background:${n.read ? 'transparent' : 'var(--danger)'};flex:none"></span>
+      <div class="grow"><div class="row"><span class="badge acc" ${i === 0 ? 'data-d="4"' : ''}>${n.type}</span><span class="sm faint">${n.time}</span></div><div style="margin-top:3px">${esc(n.text)}</div></div></div>`).join('')}
+  </div></div>`,
+'C-01': () => {
+  const ppl = PEOPLE.map(p => ({p, done:S.avail[p.name].submitted}));
+  const doneN = ppl.filter(x => x.done).length;
+  const my = {none:null, input:S.avail[me()].submitted ? ['제출 완료. 다른 회원을 기다려요', null] : ['가능 시간 입력하기', 'C-03'], vote:['투표하기', 'C-05'], done:['확정 일정 보기', 'C-06']}[S.stage];
+  return `${hdr('일정', {bell:0})}
+  <div class="body">
+    ${stepper(1)}
+    <div class="card" data-d="2"><div class="ct"><span>이번 회차</span>${S.round.n > 1 ? `<span class="badge wait">변경 뒤 ${S.round.n}회차 투표</span>` : ''}</div>
+      ${S.stage === 'none' ? '<div class="b">진행 중인 요청이 없어요</div><div class="sm muted">팀장이 요청을 보내면 여기 표시돼요</div>'
+        : `<div class="b" style="font-size:17px">${S.round.week}</div><div class="sm muted">진행 예상 ${dur(S.round.dur)} · 입력 마감 ${S.round.deadline}</div>`}
+    </div>
+    ${S.stage !== 'none' ? `<div class="card" data-d="3"><div class="ct"><span>제출 상태</span><span>${doneN}/${ppl.length}</span></div>
+      <div class="list">${ppl.map(x => `<div class="li" style="cursor:default"><div class="av">${x.p.name[0]}</div><div class="grow"><div class="t">${x.p.name}${x.p.name === me() ? ' (나)' : ''}</div><div class="sm faint">${roleLabel(x.p.name)}</div></div>${x.done ? '<span class="badge ok">제출 완료</span>' : '<span class="badge wait">입력 중</span>'}</div>`).join('')}</div></div>` : ''}
+    ${my ? `<button class="btn pri wide" data-d="4" ${my[1] ? `data-act="go" data-arg="${my[1]}"` : 'disabled'}>${my[0]}</button>` : ''}
+    ${isLead() ? `<div class="btns"><button class="btn" data-d="5" data-act="go" data-arg="C-02" ${['input','vote'].includes(S.stage) ? 'disabled' : ''}>${ic('plus', 16)}일정 요청 보내기</button>
+      <button class="btn" data-d="6" data-act="nudge" ${S.stage !== 'input' ? 'disabled' : ''}>${ic('bell', 16)}재촉하기</button></div>
+      ${['input','vote'].includes(S.stage) ? '<div class="hint center">진행 중인 회차가 끝나면 새 요청을 보낼 수 있어요</div>' : ''}` : ''}
+  </div>`; },
+'C-02': () => `${hdr('일정 요청 만들기', {back:'C-01'})}
+  <div class="body">
+    <label class="f" data-d="1">대상 주<select class="inp" id="rweek"><option>9/28 주 (9/28~10/4)</option><option>10/5 주 (10/5~10/11)</option><option>10/12 주 (10/12~10/18)</option></select></label>
+    <div class="f" data-d="2" style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">진행 예상 시간
+      <div class="chips">${[1, 1.5, 2, 2.5, 3].map(h => `<button class="chip ${+(S.form.dur || 1.5) === h ? 'on' : ''}" data-act="setdur" data-arg="${h}">${dur(h)}</button>`).join('')}</div>
+      <span class="hint">후보 시간은 이 길이가 들어가는 구간만 나와요</span></div>
+    <div class="card" data-d="3"><div class="ct"><span>참여자</span><span>${PEOPLE.length}명</span></div>
+      ${PEOPLE.map(p => `<label class="row" style="padding:6px 0;font-weight:600"><input type="checkbox" checked> ${p.name} <span class="sm faint">${roleLabel(p.name)}</span></label>`).join('')}</div>
+    <label class="f" data-d="4">입력 마감<select class="inp"><option>요청 뒤 2일 · 9/30(수) 23:59</option><option>요청 뒤 1일</option><option>요청 뒤 3일</option></select><span class="hint">마감 뒤 처리 방식은 미정</span></label>
+    <button class="btn pri wide" data-act="sendreq" data-d="5">${ic('send', 16)}요청 보내기</button>
+  </div>`,
+'C-03': () => {
+  const days = S.avail[me()].days;
+  const cell = (i, date, off) => {
+    if (off) return `<div class="day off">${date}</div>`;
+    const st = days[i].st;
+    return `<button class="day ${st}" data-act="cycle" data-arg="${i}" ${i === 3 ? 'data-d="3"' : ''}>${date}<small>${{no:'안 됨', maybe:'바뀔 수도', ok:''}[st]}</small></button>`;
+  };
+  let grid;
+  if (S.calView === 'week') grid = WEEK.map((d, i) => cell(i, d.split('/')[1], false)).join('');
+  else {
+    const dates = []; for (let w = 0; w < 4; w++) for (let k = 0; k < 7; k++) { const n = 21 + w * 7 + k; const dd = n > 30 ? n - 30 : n; dates.push([w === 1 ? k : -1, dd]); }
+    grid = dates.map(([i, dd]) => cell(i, dd, i < 0)).join('');
+  }
+  return `${hdr('가능 시간 입력', {back:'C-01'})}
+  <div class="body">
+    <div data-d="1"><div class="between sm b"><span>1/2 안 되는 날 고르기</span><span class="faint">다음: 시간 정하기</span></div><div class="steps" style="margin-top:6px"><i class="on"></i><i></i></div></div>
+    <div class="between"><div class="b">${S.round.week}</div>
+      <div class="seg" data-d="2"><button class="${S.calView === 'week' ? 'on' : ''}" data-act="calview" data-arg="week">주간</button><button class="${S.calView === 'month' ? 'on' : ''}" data-act="calview" data-arg="month">월간</button></div></div>
+    <div class="muted sm">되는 날은 그대로 두세요. 안 되는 날만 눌러 표시해요. 한 번 더 누르면 바뀔 수도 있는 날이 돼요.</div>
+    <div class="cal">${DOW.map(d => `<div class="dh">${d}</div>`).join('')}${grid}</div>
+    <div class="legend" data-d="4"><span><i class="lok"></i>되는 날</span><span><i class="lno"></i>안 됨</span><span><i class="lmay"></i>바뀔 수도 있음</span></div>
+    <div class="hint" data-d="6">대상 주 밖의 날은 흐리게 보이고 누를 수 없어요</div>
+    <button class="btn pri wide" data-act="step2" data-d="5">다음</button>
+  </div>`; },
+'C-04': () => {
+  const days = S.avail[me()].days;
+  const opts = (v, from) => { let o = ''; for (let h = from; h <= 24; h += .5) o += `<option value="${h}" ${h === v ? 'selected' : ''}>${fmt(h)}</option>`; return o; };
+  const rows = days.map((d, i) => d.st === 'no' ? '' : `
+    <div class="trow" ${i === 0 ? 'data-d="2"' : ''} ${d.st === 'maybe' && !days.slice(0, i).some(x => x.st === 'maybe') ? 'data-dm="5"' : ''}>
+      <div class="between"><div class="b">${WEEK[i]}(${DOW[i]}) ${d.st === 'maybe' ? '<span class="badge wait">바뀔 수도 있음</span>' : ''}</div>
+        <div class="row sm" ${i === 0 ? 'data-d="3"' : ''}><select data-act="tset" data-arg="${i}:s">${opts(d.s, 9)}</select> ~ <select data-act="tset" data-arg="${i}:e">${opts(d.e, 9.5)}</select></div></div>
+      <div class="tbar ${d.st === 'maybe' ? 'maybe' : ''}" ${i === 0 ? 'data-d="4"' : ''}><b style="left:${(d.s - 9) / 15 * 100}%;width:${(d.e - d.s) / 15 * 100}%"></b></div>
+      ${i === 0 ? '<div class="tscale"><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>' : ''}
+    </div>`).join('');
+  return `${hdr('가능 시간 입력', {back:'C-03'})}
+  <div class="body">
+    <div data-d="1"><div class="between sm b"><span>2/2 되는 날의 시간 정하기</span><span class="faint">마지막 단계</span></div><div class="steps" style="margin-top:6px"><i class="on"></i><i class="on"></i></div></div>
+    <div class="sm muted">평일 19~23시, 주말 14~22시로 미리 채워 뒀어요. 맞으면 그대로 제출하세요.</div>
+    ${rows || '<div class="empty">되는 날이 없어요. 이전 단계로 돌아가 고르세요</div>'}
+    <button class="btn pri wide" data-act="submitavail" data-d="6">${ic('check', 16)}제출</button>
+  </div>`; },
+'C-05': () => {
+  const total = PEOPLE.length;
+  const voted = new Set(Object.values(S.votes).flatMap(v => [...v])).size + (Object.values(S.votes).some(v => v.has(me())) ? 0 : 0);
+  if (!S.cands.length) return `${hdr('후보 시간 투표', {back:'C-01'})}<div class="body">${stepper(0)}
+    <div class="card" data-d="6"><div class="empty"><div class="b" style="color:var(--text)">겹치는 시간이 없어요</div><div class="sm">진행 예상 시간 ${dur(S.round.dur)} 이 들어가는 구간이 한 곳도 없어요.</div></div>
+    ${isLead() ? '<button class="btn pri wide" data-act="go" data-arg="C-02">가능 시간 다시 요청하기</button>' : '<div class="hint center">팀장이 다시 요청하면 알려 드려요</div>'}</div></div>`;
+  return `${hdr('후보 시간 투표', {back:'C-01'})}
+  <div class="body">
+    ${stepper(0).replace('data-d="0"', '')}
+    <div class="between"><div class="b">${S.round.week}</div><div class="sm muted" data-d="4">투표 ${voted}/${total}명</div></div>
+    ${S.round.n > 1 ? `<div class="alert info">일정이 바뀌어 다시 투표해요. 이전 확정 ${candLabel(S.history[0])} 은 취소됐어요.</div>` : ''}
+    <div class="sm muted">여러 개를 고를 수 있어요. 전원이 투표하면 가장 많이 받은 시간으로 확정돼요.</div>
+    ${S.cands.map((c, i) => { const on = S.myVotes.has(c.key); const n = S.votes[c.key].size + (on ? 1 : 0);
+      return `<div class="cand ${on ? 'on' : ''}" data-act="vote" data-arg="${c.key}" ${i === 0 ? 'data-d="1"' : ''}>
+        <span class="cb" ${i === 0 ? 'data-d="3"' : ''}>${on ? ic('check', 14) : ''}</span>
+        <div style="flex:1"><div class="between"><div class="b">${candLabel(c)}</div>${c.prio === 2 ? `<span class="badge wait" data-dm="2">2순위</span>` : '<span class="badge acc">1순위</span>'}</div>
+          <div class="sm muted">겹치는 구간 ${fmt(c.s)}~${fmt(c.e)}${c.prio === 2 ? ` · ${c.maybeBy.join(', ')}님이 바뀔 수도 있다고 한 날` : ''}</div>
+          <div class="meter"><b style="width:${n / total * 100}%"></b></div><div class="sm faint">${n}표</div></div></div>`; }).join('')}
+    <button class="btn pri wide" data-act="castvote" data-d="5" ${S.myVotes.size ? '' : 'disabled'}>${ic('vote', 16)}투표하기</button>
+  </div>`; },
+'C-06': () => {
+  const c = S.confirmed;
+  if (!c) return `${hdr('확정 일정', {back:'C-01'})}<div class="body"><div class="empty">아직 확정된 일정이 없어요</div></div>`;
+  return `${hdr('확정 일정', {back:'C-01'})}
+  <div class="body">
+    <div class="card hero" data-d="1"><div class="ct"><span>9/28 주 발표</span><span>${c.round > 1 ? c.round + '회차 확정' : '확정'}</span></div>
+      <div class="big">${WEEK[c.day]}(${DOW[c.day]}) ${fmt(c.start)}~${fmt(c.end)}</div>
+      <div class="muted sm">확정 ${c.at} · 디스코드 공지방에 자동 공지됨</div></div>
+    <button class="btn" data-act="toast" data-arg="휴대폰 캘린더에 넣었어요 (데모)" data-d="2">${ic('cal', 16)}캘린더에 추가</button>
+    <div class="card" data-d="3"><div class="ct"><span>투표 결과</span></div>
+      ${S.cands.map(x => `<div class="between" style="padding:5px 0"><span class="${x.key === c.key ? 'b' : 'muted'}">${candLabel(x)}</span><span class="sm">${S.votes[x.key].size}표</span></div>`).join('')}</div>
+    ${S.history.length ? `<div class="card" data-d="6"><div class="ct"><span>변경 이력</span></div>${S.history.map(h => `<div class="sm"><span class="strike">${candLabel(h)}</span> · 변경으로 취소 · ${esc(h.reason)}</div>`).join('')}</div>` : ''}
+    ${isLead() ? `<button class="btn dangertxt" data-act="modal" data-arg="change" data-d="4">일정 변경</button>` : '<div class="hint center">일정 변경은 팀장만 할 수 있어요</div>'}
+  </div>`; },
+'D-01': () => `${hdr('공지', {bell:0, right: isLead() ? `<button class="ib" aria-label="템플릿 관리" data-act="go" data-arg="D-03" data-d="6">${ic('edit')}</button>` : ''})}
+  <div class="body">
+    <div class="list">${S.notices.map((n, i) => `<div class="li" data-act="opennotice" data-arg="${n.id}" ${i === 0 ? 'data-d="1"' : ''}>
+      <div class="grow"><div class="t">${esc(n.title)}</div><div class="sm faint">${n.target} · ${n.author} · ${n.time}</div></div>
+      <div class="row" ${n.status === '임시저장' ? 'data-d="4"' : ''}>${n.status === '실패' && isLead() ? `<button class="btn sm" data-act="resend" data-arg="${n.id}" data-d="3">다시 보내기</button>` : ''}<span ${i === 1 ? 'data-d="2"' : ''}>${badgeFor(n.status)}</span></div></div>`).join('')}</div>
+    ${isLead() ? `<button class="btn pri wide" data-act="newnotice" data-d="5">${ic('plus', 16)}공지 쓰기</button>` : '<div class="hint center">공지는 팀장과 관리자가 써요</div>'}
+  </div>`,
+'D-02': () => composeView(false),
+'D-03': () => {
+  const k = S.form.tplIdx ?? 0, t = S.tpls[k];
+  const body = S.form.tplBody ?? t.body;
+  return `${hdr('템플릿 관리', {back:'D-01'})}
+  <div class="body">
+    <div class="chips" data-d="1">${S.tpls.map((x, i) => `<button class="chip ${i === k ? 'on' : ''}" data-act="picktpl" data-arg="${i}">${x.name}<span style="opacity:.6;font-weight:500"> · ${x.updated}</span></button>`).join('')}<button class="chip" data-act="newtpl">+ 새 템플릿</button></div>
+    <label class="f" data-d="2">템플릿 이름<input class="inp" id="tname" value="${esc(S.form.tplName ?? t.name)}"></label>
+    <label class="f" data-d="3">본문 틀<textarea class="inp" id="tbody" data-act-input="tplbody">${esc(body)}</textarea></label>
+    <div data-d="4"><div class="sm muted b" style="margin-bottom:6px">빈칸 넣기</div><div class="chips">${['날짜','시간','발표자','주제','장소','분류'].map(x => `<button class="chip" data-act="inserttag" data-arg="${x}">{${x}}</button>`).join('')}</div></div>
+    <div class="card" data-d="5"><div class="ct"><span>찾은 빈칸</span><span>${tplFields(body).length}개</span></div><div class="chips">${tplFields(body).map(x => `<span class="badge acc">${x}</span>`).join('') || '<span class="faint sm">빈칸이 없어요</span>'}</div></div>
+    <button class="btn pri wide" data-act="savetpl" data-d="6">저장</button>
+  </div>`; },
+'E-01': () => {
+  const cats = ['공지','템플릿','노하우','기록'];
+  const list = S.files.filter(f => f.cat === S.fileCat && f.name.includes(S.fileQ || ''));
+  return `${hdr('자료실', {bell:0})}
+  <div class="body">
+    <div class="seg" data-d="1" style="display:flex">${cats.map(c => `<button style="flex:1" class="${S.fileCat === c ? 'on' : ''}" data-act="fcat" data-arg="${c}">${c}</button>`).join('')}</div>
+    <div class="row" data-d="2" style="position:relative"><span style="position:absolute;left:12px;color:var(--faint)">${ic('search', 18)}</span><input class="inp" id="fq" style="padding-left:38px" placeholder="파일 이름으로 찾기" value="${esc(S.fileQ)}"></div>
+    <div class="list">${list.map((f, i) => `<div class="li" style="cursor:default" ${i === 0 ? 'data-d="3"' : ''}><div class="ico">${ic(f.name.endsWith('.mp4') ? 'video' : 'file', 18)}</div>
+      <div class="grow"><div class="t">${esc(f.name)}</div><div class="sm faint">${f.size} · ${f.by} · ${f.date}</div></div>
+      <button class="ib" aria-label="내려받기" data-act="download" data-arg="${esc(f.name)}" ${i === 0 ? 'data-d="4"' : ''}>${ic('down')}</button></div>`).join('')
+      || `<div class="empty" data-d="5">${S.fileCat}에 올라온 자료가 없어요</div>`}</div>
+    <button class="btn pri wide" data-act="go" data-arg="E-02" data-d="6">${ic('up', 16)}자료 올리기</button>
+  </div>`; },
+'F-01': () => {
+  const acts = S.activity.map(a => ({...a, who: a.who === '*' ? me() : a.who})).filter(a => a.who === me());
+  const p = PEOPLE.find(x => x.name === me());
+  return `${hdr('내 정보', {bell:0})}
+  <div class="body">
+    <div class="card row" data-d="1"><div class="av" style="width:48px;height:48px;font-size:18px">${me()[0]}</div>
+      <div class="grow"><div class="b" style="font-size:17px">${me()}</div><div class="sm muted">@${p.id} · ${p.email}</div><div class="sm muted">디스코드 ${p.dc}</div><div class="row" style="margin-top:4px;gap:6px">${S.admins.has(me()) ? '<span class="badge acc">관리자</span>' : ''}<span class="badge acc">${S.roles[me()]}</span><span class="badge">주간발표회</span></div></div></div>
+    <div class="card" data-d="2"><div class="ct"><span>활동 기록</span><span>${acts.length}건</span></div>
+      <div class="list">${acts.map((a, i) => `<div class="li" data-act="go" data-arg="${a.go}" ${i === 0 ? 'data-d="3"' : ''}><div class="grow"><div class="t">${esc(a.text)}</div><div class="sm faint">${a.time}</div></div></div>`).join('') || '<div class="faint sm">아직 기록이 없어요</div>'}</div></div>
+    ${isAdmin() ? `<button class="btn" data-act="go" data-arg="G-01" data-d="5">${ic('edit', 16)}관리자 화면</button>` : ''}
+    <div style="height:40px"></div>
+    <button class="btn dangertxt" data-act="modal" data-arg="logout" data-d="4">로그아웃</button>
+  </div>`; },
+'E-02': () => uploadView(),
+'G-01': () => adminView('G-01'), 'G-02': () => adminView('G-02'), 'G-03': () => adminView('G-03'),
+};
+
+function composeView(web) {
+  const f = S.form, tname = f.tpl || '주간 모임 공지', tpl = S.tpls.find(t => t.name === tname);
+  const vals = f.vals || (f.vals = composeDefaults(tname));
+  const body = tname === '자유 공지' ? (f.free || '') : fillTpl(tpl.body, vals);
+  const targets = TARGETS(); const target = f.target || targets[0];
+  const inner = `
+    <label class="f" data-d="${web ? 4 : 1}">템플릿<select class="inp" data-act="tplsel">${S.tpls.map(t => `<option ${t.name === tname ? 'selected' : ''}>${t.name}</option>`).join('')}</select></label>
+    <div ${web ? '' : 'data-d="2"'} style="display:flex;flex-direction:column;gap:10px">${tname === '자유 공지'
+      ? `<label class="f">제목<input class="inp" id="ntitle" value="${esc(f.title)}"></label><label class="f">본문<textarea class="inp" id="nfree">${esc(f.free)}</textarea></label>`
+      : tplFields(tpl.body).map(k => `<label class="f">${k}<input class="inp" data-field="${k}" value="${esc(vals[k])}" placeholder="{${k}}"></label>`).join('')}</div>
+    ${web ? '' : `<div class="f" data-d="3" style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)">대상<div class="chips">${targets.map(t => `<button class="chip ${t === target ? 'on' : ''}" data-act="settarget" data-arg="${t}">${t}</button>`).join('')}</div><span class="hint">보낼 곳: # ${CHANNEL(target)}</span></div>`}
+    <div ${web ? '' : 'data-d="4"'}><div class="sm muted b" style="margin-bottom:6px">디스코드 미리보기</div>
+      <div class="dc"><div class="who">주간발표회 <span class="bot">앱</span><span class="tm">오늘</span></div><div class="emb"><div class="et">${esc(f.title || tname)}</div>${esc(body) || '<span style="opacity:.5">본문을 채우면 여기 보여요</span>'}</div></div></div>
+    <div class="btns" ${web ? 'data-d="5"' : ''}><button class="btn" data-act="draft" ${web ? '' : 'data-d="5"'}>임시 저장하기</button><button class="btn pri" data-act="modal" data-arg="send" ${web ? '' : 'data-d="6"'}>${ic('send', 16)}발송하기</button></div>`;
+  if (web) return inner;
+  return `${hdr(f.editing ? '공지 이어 쓰기' : '공지 작성', {back:'D-01'})}<div class="body">${inner}</div>`;
+}
+
+function uploadView() {
+  const up = S.uploads, mob = S.dev === 'mob';
+  const status = f => f.up ? '<span class="badge ok">올림 완료</span>' : up.some(u => u.name === f.name && !u.done) ? '<span class="badge wait">올리는 중</span>' : '<span class="badge">안 올림</span>';
+  const folderNote = {pc:'PC 앱은 녹화 폴더를 늘 지켜봐요', web:'웹은 Chrome·Edge 에서 폴더를 지정해요. 다른 브라우저는 파일 고르기와 끌어다 놓기', mob:'휴대폰은 폴더 대신 파일 앱이나 사진에서 골라요'}[S.dev];
+  const list = mob
+    ? `<div class="list" data-d="3">${S.local.map(f => `<div class="li" style="cursor:default"><input type="checkbox" data-act="pick" data-arg="${esc(f.name)}" ${S.sel.has(f.name) ? 'checked' : ''} ${f.up ? 'disabled' : ''}><div class="grow"><div class="t">${esc(f.name)} ${f.new ? '<span class="badge acc">새 파일</span>' : ''}</div><div class="sm faint">${f.size} · ${f.date}</div></div>${status(f)}</div>`).join('')}</div>`
+    : `<div style="border:1px solid var(--line);border-radius:12px;overflow:hidden" data-d="3"><table class="t"><thead><tr><th style="width:34px"></th><th>파일 이름</th><th class="num">크기</th><th>만든 시각</th><th>상태</th></tr></thead><tbody>
+      ${S.local.map(f => `<tr class="${S.sel.has(f.name) ? 'sel' : ''}"><td><input type="checkbox" data-act="pick" data-arg="${esc(f.name)}" ${S.sel.has(f.name) ? 'checked' : ''} ${f.up ? 'disabled' : ''}></td>
+        <td>${ic('video', 15)} ${esc(f.name)} ${f.new ? '<span class="badge acc">새 파일</span>' : ''}</td><td class="num">${f.size}</td><td class="faint">${f.date}</td><td>${status(f)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  return `${hdr('자료 올리기', {back:'E-01'})}<div class="body">
+    <div class="pathbox" data-d="1">${ic('folder', 18)}<div class="grow" style="min-width:0"><code style="display:block;overflow:hidden;text-overflow:ellipsis">${mob ? '휴대폰 파일' : esc(S.folder)}</code><div class="hint">${folderNote}</div></div><button class="btn sm" data-act="toast" data-arg="${mob ? '파일 앱이 열려요 (데모)' : '운영체제의 폴더 선택 창이 열려요 (데모)'}">${mob ? '파일 고르기' : '폴더 바꾸기'}</button></div>
+    <div class="between" style="flex-wrap:wrap"><div class="b">${mob ? '고른 파일' : '지정 폴더의 파일'} <span class="faint sm">${S.local.length}개 · 최신순</span></div>
+      <div class="row"><button class="btn sm" data-act="refresh" data-d="2">${ic('refresh', 15)}새로 고침</button>
+      <button class="btn sm pri" data-act="modal" data-arg="upconfirm" data-d="4" ${S.sel.size ? '' : 'disabled'}>${ic('up', 15)}올리기 (${S.sel.size})</button></div></div>
+    ${list}
+    <div class="drop" id="drop" data-d="5">${ic('up', 18)} ${mob ? '공유하기로 다른 앱의 파일을 보내도 여기로 와요' : '파일을 여기에 끌어다 놓아도 올라가요. 폴더 밖의 파일도 됩니다'}</div>
+    ${up.length ? `<div class="card" data-d="6" style="display:flex;flex-direction:column;gap:10px"><div class="ct"><span>올리기 진행</span><span>${up.filter(u => u.done).length}/${up.length} 완료</span></div>
+      ${up.map(u => `<div><div class="between sm"><span class="b">${esc(u.name)}</span><span class="faint">${u.done ? '완료 · ' + u.cat : Math.floor(u.p) + '% · 남은 시간 약 ' + Math.max(1, Math.round((100 - u.p) / 12)) + '초'}</span></div><div class="prog" style="margin-top:4px"><b style="width:${u.p}%"></b></div></div>`).join('')}
+      ${up.some(u => u.done) ? `<button class="btn sm" data-d="7" data-act="uploadnotice">${ic('mega', 15)}자료 올림 공지 쓰기</button>` : ''}</div>` : ''}
+  </div>`;
+}
+
+function adminView(tab) {
+  const head = hdr('관리자', {back: S.dev === 'mob' ? 'F-01' : null});
+  if (!isAdmin()) return `${head}<div class="body"><div class="empty"><div class="b" style="font-size:18px;color:var(--text)">권한이 없어요</div><div>관리자 화면은 관리자만 쓸 수 있어요. 위에서 홍길동(관리자)로 바꿔 보세요.</div></div></div>`;
+  const nav = `<div class="seg admtabs" ${tab === 'G-01' ? 'data-d="1"' : ''}>
+    ${[['G-01','회원과 역할'],['G-02','팀과 공지방'],['G-03','대상별 공지']].map(([id, t]) => `<button class="${tab === id ? 'on' : ''}" data-act="go" data-arg="${id}">${t}</button>`).join('')}</div>`;
+  let main = '';
+  if (tab === 'G-01') {
+    const r = S.roles, leads = Object.values(r).filter(x => x === '팀장').length, subs = Object.values(r).filter(x => x === '부팀장').length;
+    const bad = leads !== 1 || subs < 1 || !S.admins.size;
+    main = `<h2 class="b" style="margin:0;font-size:17px">회원과 역할</h2>
+      ${bad ? `<div class="alert no" data-d="4">팀장 1명, 부팀장 1명 이상, 관리자 1명 이상이 있어야 해요. 지금 팀장 ${leads}명, 부팀장 ${subs}명, 관리자 ${S.admins.size}명.</div>` : `<div class="alert info" data-d="4">팀장 1명, 부팀장 ${subs}명, 관리자 ${S.admins.size}명. 규칙에 맞아요.</div>`}
+      <div style="border:1px solid var(--line);border-radius:12px;overflow-x:auto" data-d="2"><table class="t" style="min-width:520px"><thead><tr><th>이름</th><th class="hide-m">디스코드 ID</th><th>팀 역할</th><th>관리자</th><th class="hide-m">가입일</th></tr></thead><tbody>
+      ${PEOPLE.map((p, i) => `<tr><td class="b">${p.name}<div class="sm faint">@${p.id}</div></td><td class="hide-m">${p.dc}</td>
+        <td><select class="inp" style="padding:6px 8px;min-width:88px" data-act="setrole" data-arg="${p.name}" ${i === 0 ? 'data-d="3"' : ''}>${['팀장','부팀장','회원'].map(x => `<option ${r[p.name] === x ? 'selected' : ''}>${x}</option>`).join('')}</select></td>
+        <td><input type="checkbox" data-act="setadmin" data-arg="${p.name}" ${S.admins.has(p.name) ? 'checked' : ''} ${p.name === me() ? 'disabled title="자기 관리자 권한은 다른 관리자가 풀어요"' : ''} ${i === 0 ? 'data-d="5"' : ''}></td>
+        <td class="faint hide-m">${p.joined}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="between"><span class="hint">관리자는 팀 역할과 겹칠 수 있어요.</span><button class="btn pri nowrap" data-act="saveroles" data-d="6" ${bad ? 'disabled' : ''}>저장</button></div>`;
+  } else if (tab === 'G-02') {
+    const t = S.teams[0];
+    main = `<h2 class="b" style="margin:0;font-size:17px">팀과 공지방</h2>
+      <div class="grid2">${S.teams.map((t, i) => `<div class="card" ${i === 0 ? 'data-d="1"' : ''} style="display:flex;flex-direction:column;gap:12px"><div class="between"><div class="b" style="font-size:17px">${esc(t.name)}</div><span class="badge">팀장 ${Object.keys(S.roles).find(k => S.roles[k] === '팀장') || '없음'} · ${PEOPLE.length}명</span></div>
+        <div ${i === 0 ? 'data-d="2"' : ''}><div class="sm muted b">팀 공지방</div><div class="row"><span class="b"># ${esc(t.ch)}</span></div><div class="row"><code class="sm faint" style="flex:1">${esc(t.hook)}</code><button class="btn sm" data-act="toast" data-arg="새 웹훅 주소를 넣는 칸이 열려요 (데모)">바꾸기</button></div></div>
+        <div ${i === 0 ? 'data-d="4"' : ''}><div class="sm muted b">운영진 공지방</div><div class="row"><span class="b"># ${esc(t.staff || '없음')}</span></div><code class="sm faint">${esc(t.staffHook || '-')}</code></div>
+        <button class="btn sm" data-act="testmsg" data-arg="${i}" ${i === 0 ? 'data-d="3"' : ''}>테스트 메시지 보내기</button></div>`).join('')}
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;border-style:dashed" data-d="5"><div class="b">새 팀 만들기</div>
+          <input class="inp" id="tmname" placeholder="팀 이름"><input class="inp" id="tmhook" placeholder="공지방 웹훅 주소"><button class="btn" data-act="newteam">만들기</button></div></div>
+      <div class="alert info" data-d="6">공지방 자동 생성과 삭제(FR-05, FR-27)는 봇 방식이 필요해요. 방식이 정해지면 이 자리에 들어가요.</div>`;
+  } else {
+    const tg = S.admTarget;
+    main = `<h2 class="b" style="margin:0;font-size:17px">대상별 공지</h2>
+      <div class="radio" data-d="1">${['특정인','팀장','팀장·부팀장','전체'].map(t => `<button class="chip ${tg === t ? 'on' : ''}" data-act="admtarget" data-arg="${t}">${t}</button>`).join('')}</div>
+      ${tg === '특정인' ? `<label class="f" data-d="2" style="max-width:320px">받을 사람<select class="inp" data-act="admperson">${PEOPLE.map(p => `<option ${S.admPerson === p.name ? 'selected' : ''}>${p.name}</option>`).join('')}</select><span class="hint">특정인에게 어디로 보낼지는 미정</span></label>` : ''}
+      <div class="alert info" data-d="3">보낼 곳: # ${CHANNEL(tg)}</div>
+      <div class="grid2"><div style="display:flex;flex-direction:column;gap:12px">${composeView(true)}</div>
+        <div class="card"><div class="ct"><span>최근 보낸 공지</span></div>${S.notices.slice(0, 5).map(n => `<div class="between sm" style="padding:6px 0;border-bottom:1px solid var(--line)"><span>${esc(n.title)} <span class="faint">· ${n.target}</span></span>${badgeFor(n.status)}</div>`).join('')}</div></div>`;
+  }
+  return `${head}<div class="body">${nav}${main}</div>`;
+}
+
+function modalView() {
+  const m = S.modal; if (!m) return '';
+  if (m === 'change') return `<div class="mask"><div class="modal" data-d="5"><h2>일정을 바꿀까요?</h2>
+    <div class="muted">지금 확정 ${candLabel(S.confirmed)} 은 변경으로 취소돼요. 참여자 전원에게 알림이 가고 후보 시간 투표를 다시 해요.</div>
+    <label class="f">사유<input class="inp" id="creason" placeholder="예: 발표자 사정" value="${esc(S.form.creason || '발표자 사정')}"></label>
+    <div class="btns"><button class="btn" data-act="close">취소</button><button class="btn dangerbg" data-act="dochange">바꾸고 다시 투표</button></div></div></div>`;
+  if (m === 'send') { const f = S.form, t = S.tpls.find(x => x.name === (f.tpl || '주간 모임 공지'));
+    const left = t && t.name !== '자유 공지' ? tplFields(t.body).filter(k => !(f.vals || {})[k]) : [];
+    return `<div class="mask"><div class="modal"><h2>지금 보낼까요?</h2><div class="muted"># ${CHANNEL(S.screen === 'G-03' ? S.admTarget : (f.target || TARGETS()[0]))} 로 바로 올라가요.</div>
+    ${left.length ? `<div class="alert no">빈칸 ${left.length}개가 비어 있어요: ${left.join(', ')}. 그대로 보내면 {빈칸} 글자가 보여요.</div>` : ''}
+    <div class="btns"><button class="btn" data-act="close">취소</button><button class="btn pri" data-act="send">발송하기</button></div></div></div>`; }
+  if (m === 'mailsent') return `<div class="mask"><div class="modal"><h2>인증 메일을 보냈어요</h2><div class="muted">${esc(S.form.lid)} 로 보낸 메일의 링크를 누르면 가입이 끝나요. 그다음 로그인하세요.</div>
+    <div class="btns"><button class="btn pri" data-act="close">확인</button></div></div></div>`;
+  if (m === 'logout') return `<div class="mask"><div class="modal"><h2>로그아웃할까요?</h2><div class="muted">다시 로그인하면 기록은 그대로 있어요.</div>
+    <div class="btns"><button class="btn" data-act="close">취소</button><button class="btn dangerbg" data-act="logout">로그아웃</button></div></div></div>`;
+  if (m === 'nodays') return `<div class="mask"><div class="modal"><h2>되는 날이 하루도 없어요</h2><div class="muted">이대로 제출하면 이번 주 후보에서 빠져요. 계속할까요?</div>
+    <div class="btns"><button class="btn" data-act="close">다시 고르기</button><button class="btn pri" data-act="submitavail">이대로 제출</button></div></div></div>`;
+  if (m === 'upconfirm') return `<div class="mask mid"><div class="modal"><h2>이 파일을 올릴까요?</h2>
+    <div class="list">${[...(S.pendingDrop || S.sel)].map(n => `<div class="li" style="cursor:default">${ic('video', 16)}<span class="grow">${esc(n)}</span></div>`).join('')}</div>
+    <label class="f">분류<select class="inp" id="upcat">${['기록','노하우','템플릿','공지'].map(c => `<option>${c}</option>`).join('')}</select></label>
+    <div class="btns"><button class="btn" data-act="close">취소</button><button class="btn pri" data-act="doupload">올리기</button></div></div></div>`;
+  return '';
+}
+
+/* ---------- 그리기 ---------- */
+/* PC 앱과 웹의 왼쪽 메뉴. 모바일 하단 탭과 같은 메뉴에 자료 올리기와 관리자를 더한다 */
+function sideNav(d) {
+  const items = [['B-01','home','홈'],['C-01','cal','일정'],['D-01','mega','공지'],['E-01','folder','자료실'],['E-02','up','자료 올리기'],['F-01','user','내 정보']];
+  if (isAdmin()) items.push(['G-01','edit','관리자']);
+  const cur = S.screen[0] === 'G' ? 'G-01' : S.screen === 'E-02' ? 'E-02' : tabOf(S.screen);
+  return `<nav class="snav" ${d ? `data-d="${d}"` : ''}><div class="brand" style="font-size:18px;padding:4px 10px 14px">주간<em>발표회</em></div>
+    ${items.map(([id, i, t]) => `<button class="nb ${cur === id ? 'on' : ''}" data-act="go" data-arg="${id}">${ic(i, 18)}${t}</button>`).join('')}
+    <div class="grow"></div><div class="sm faint" style="padding:8px 10px">${me()} · ${roleLabel(me())}</div></nav>`;
+}
+const DEVNAME = {mob:'스마트폰 앱', pc:'PC 앱', web:'웹'};
+function render() {
+  const id = S.screen;
+  const dev = document.getElementById('device');
+  const scroll = dev.querySelector('.scr')?.scrollTop || 0;
+  const content = SCREENS[id]();
+  const toastH = S.toast ? `<div class="toast">${esc(S.toast)}</div>` : '';
+  const inApp = S.loggedIn && id[0] !== 'A';
+  if (S.dev === 'mob') {
+    dev.innerHTML = `<div class="phone"><div class="in"><div class="status"><span>9:41</span><span>●●● 5G</span></div>
+      <div class="scr">${content}</div>${inApp ? tabs(id === 'B-01' ? 6 : 0) : ''}${modalView()}${toastH}</div></div>`;
+  } else {
+    const bar = S.dev === 'pc'
+      ? `<div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>주간발표회 · PC 앱</div>`
+      : `<div class="titlebar"><div class="dots"><i></i><i></i><i></i></div><span class="url">https://app.example.com (웹 예시 주소)</span></div>`;
+    const body = inApp ? `<div class="desk">${sideNav(id === 'B-01' ? 6 : 0)}<div class="dcont">${content}</div></div>` : `<div class="dauth">${content}</div>`;
+    dev.innerHTML = `<div class="win ${S.dev === 'web' ? 'web' : ''}">${bar}<div class="scr">${body}</div>${modalView()}${toastH}</div>`;
+  }
+  const sc = dev.querySelector('.scr'); if (sc) { sc.scrollTop = scroll; sc.onscroll = () => requestAnimationFrame(placeMarks); }
+  bindInputs();
+  document.querySelectorAll('#devseg button').forEach(b => b.classList.toggle('on', b.dataset.arg === S.dev));
+  document.getElementById('rolesel').value = S.me;
+  document.getElementById('stagesel').value = S.stage;
+  document.getElementById('desctog').classList.toggle('on', S.desc);
+  document.body.classList.toggle('marks', S.desc || MARKS);
+  if (!SHOT && location.hash.slice(1) !== id) history.replaceState(null, '', location.pathname + location.search + '#' + id);
+  renderDesc(); renderJump(); renderDc();
+  requestAnimationFrame(placeMarks);
+  if (document.fonts) document.fonts.ready.then(() => requestAnimationFrame(placeMarks));
+}
+function placeMarks() {
+  const dev = document.getElementById('device');
+  dev.querySelectorAll('.mk,.mkbox').forEach(x => x.remove());
+  if (!(S.desc || MARKS)) return;
+  const root = dev.firstElementChild; if (!root) return;
+  const base = dev.getBoundingClientRect();
+  const inModal = root.querySelector('.mask');
+  const scr = root.querySelector('.scr');
+  const els = [...root.querySelectorAll('[data-d],[data-dm]')].filter(e => +(e.dataset.d || e.dataset.dm) > 0);
+  const seen = new Set();
+  els.forEach(e => {
+    const n = +(e.dataset.d || e.dataset.dm);
+    if (inModal && !inModal.contains(e)) return;
+    if (scr && !SHOT && !inModal) { const sr = scr.getBoundingClientRect(), rr = e.getBoundingClientRect(); if (rr.bottom < sr.top + 4 || rr.top > sr.bottom - 4) return; }
+    if (ONLY && !ONLY.includes(n)) return;
+    if (seen.has(n)) return; seen.add(n);
+    const r = e.getBoundingClientRect(); if (!r.width && !r.height) return;
+    const box = document.createElement('div'); box.className = 'mkbox';
+    Object.assign(box.style, {left:(r.left - base.left - 3) + 'px', top:(r.top - base.top - 3) + 'px', width:(r.width + 6) + 'px', height:(r.height + 6) + 'px'});
+    const mk = document.createElement('div'); mk.className = 'mk'; mk.textContent = n; mk.dataset.n = n;
+    Object.assign(mk.style, {left:Math.max(2, r.left - base.left - 27) + 'px', top:Math.max(0, r.top - base.top + 1) + 'px'});
+    dev.appendChild(box); dev.appendChild(mk);
+  });
+}
+function renderDesc() {
+  const s = SPEC.screens.find(x => x.id === S.screen) || {};
+  document.getElementById('desc').innerHTML = `<div class="row" style="flex-wrap:wrap;gap:6px"><span class="sid">${s.id}</span><span class="b">${s.title}</span><span class="badge">${s.platform}</span></div>
+    <div class="sm muted" style="margin-top:8px">${esc(s.summary)}</div><div class="sm faint" style="margin-top:4px">관련 요구사항 ${s.fr}</div>
+    <ol>${(s.items || []).map((t, i) => `<li data-n="${i + 1}"><b>${i + 1}</b><span>${esc(t)}</span></li>`).join('')}</ol>`;
+}
+function renderJump() {
+  document.getElementById('jump').innerHTML = SPEC.screens.map(s => `<button class="${s.id === S.screen ? 'on' : ''}" data-act="jump" data-arg="${s.id}" title="${s.title}">${s.id} ${s.title.split(' ')[0]}</button>`).join('');
+}
+function renderDc() {
+  const ch = document.getElementById('dcsel').value;
+  const list = S.dc.filter(m => m.ch === ch);
+  document.getElementById('dcfeed').innerHTML = list.map(m => `<div class="dc" style="background:transparent;padding:0"><div class="who">주간발표회 <span class="bot">앱</span><span class="tm">${m.time}</span></div><div class="emb"><div class="et">${esc(m.title)}</div>${esc(m.body)}</div></div>`).join('') || '<div style="color:#949BA4;font-size:12px">이 채널에는 아직 글이 없어요</div>';
+}
+
+/* ---------- 입력 연결 ---------- */
+function bindInputs() {
+  const g = id => document.getElementById(id);
+  const map = {lid:'lid', lpw:'lpw', sid:'sid', semail:'semail', remail:'remail', npw:'npw', npw2:'npw2', spw:'spw', spw2:'spw2', sname:'sname', sdc:'sdc', ntitle:'title', nfree:'free', creason:'creason', tname:'tplName'};
+  Object.entries(map).forEach(([id, k]) => { const e = g(id); if (e) e.oninput = () => { S.form[k] = e.value; if (id === 'nfree' || id === 'ntitle') refreshPreview(); }; });
+  document.querySelectorAll('[data-field]').forEach(e => e.oninput = () => { S.form.vals[e.dataset.field] = e.value; refreshPreview(); });
+  const tb = g('tbody'); if (tb) tb.oninput = () => { S.form.tplBody = tb.value; clearTimeout(bindInputs.t); bindInputs.t = setTimeout(() => { const p = tb.selectionStart; render(); const n = g('tbody'); n.focus(); n.setSelectionRange(p, p); }, 500); };
+  const fq = g('fq'); if (fq) fq.oninput = () => { S.fileQ = fq.value; clearTimeout(bindInputs.q); bindInputs.q = setTimeout(() => { render(); const n = g('fq'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }, 300); };
+  document.querySelectorAll('select[data-act]').forEach(e => e.onchange = () => ACT[e.dataset.act](e.dataset.arg, e));
+  const drop = g('drop');
+  if (drop) {
+    drop.ondragover = ev => { ev.preventDefault(); drop.classList.add('over'); };
+    drop.ondragleave = () => drop.classList.remove('over');
+    drop.ondrop = ev => { ev.preventDefault(); const names = [...ev.dataTransfer.files].map(f => f.name); if (!names.length) return; S.pendingDrop = names; S.modal = 'upconfirm'; render(); };
+    drop.onclick = () => { S.pendingDrop = ['끌어다 놓은 발표자료.pdf']; S.modal = 'upconfirm'; render(); };
+  }
+}
+function refreshPreview() {
+  const emb = document.querySelector('#device .emb'); if (!emb) return;
+  const f = S.form, tname = f.tpl || '주간 모임 공지', tpl = S.tpls.find(t => t.name === tname);
+  const body = tname === '자유 공지' ? (f.free || '') : fillTpl(tpl.body, f.vals || {});
+  emb.innerHTML = `<div class="et">${esc(f.title || tname)}</div>${esc(body)}`;
+}
+
+/* ---------- 동작 ---------- */
+const ACT = {
+  go: id => { S.screen = id; S.modal = null; if (id === 'D-02' && !S.form.vals) S.form = {}; render(); },
+  jump: id => { if (!S.loggedIn && id[0] !== 'A') S.loggedIn = true; if (id[0] === 'G' && !isAdmin()) setRole('홍길동'); S.screen = id; S.modal = null; render(); },
+  dev: d => { S.dev = d; render(); },
+  desc: () => { S.desc = !S.desc; render(); },
+  reset: () => { const r = S.me, d = S.dev; S = fresh(r); S.dev = d; render(); },
+  toast: t => toast(t),
+  close: () => { S.modal = null; S.pendingDrop = null; render(); },
+  modal: m => { S.modal = m; render(); },
+  login: () => {
+    const id = S.form.lid, pw = S.form.lpw;
+    if (!id || !pw) { S.err.login = '이메일과 비밀번호를 입력하세요.'; return render(); }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(id)) { S.err.login = '이메일 형식이 아니에요.'; return render(); }
+    S.err = {}; S.loggedIn = true; S.screen = 'B-01'; toast(`${me()}님, 반가워요`);
+  },
+  signup: () => {
+    const f = S.form; S.err = {};
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.semail || '')) S.err.semail = '이메일 형식이 아니에요.';
+    else if (PEOPLE.some(p => p.email === f.semail)) S.err.semail = '이미 가입한 이메일이에요.';
+    if (!/^[a-z0-9]{4,20}$/.test(f.sid || '')) S.err.sid = '영문 소문자와 숫자 4~20자로 써 주세요.';
+    if ((f.spw || '').length < 8) S.err.spw = '비밀번호는 8자 이상이에요.';
+    else if (f.spw !== f.spw2) S.err.spw = '두 비밀번호가 달라요.';
+    if (!f.sname) S.err.sname = '이름을 써 주세요.';
+    if (Object.keys(S.err).length) return render();
+    S.screen = 'A-01'; S.form = {lid:f.semail}; S.modal = 'mailsent'; render();
+  },
+  sendreset: () => { const v = S.form.remail || ''; S.err = {}; if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { S.err.remail = '이메일 형식이 아니에요.'; return render(); } S.form.resetSent = true; render(); },
+  savepw: () => { const f = S.form; S.err = {}; if ((f.npw || '').length < 8) S.err.npw = '비밀번호는 8자 이상이에요.'; else if (f.npw !== f.npw2) S.err.npw = '두 비밀번호가 달라요.'; if (S.err.npw) return render(); S.screen = 'A-01'; S.form = {lid:f.remail}; toast('새 비밀번호로 로그인해 주세요'); },
+  dupcheck: () => { const v = S.form.sid || ''; S.err.sid = ['gildong','cheolsu','younghee','minsu'].includes(v) ? '이미 쓰는 아이디예요.' : v ? '' : '아이디를 먼저 써 주세요.'; if (v && !S.err.sid) toast('쓸 수 있는 아이디예요'); else render(); },
+  readall: () => { S.notifs.forEach(n => n.read = true); render(); },
+  opennotif: i => { const n = S.notifs[+i]; n.read = true; ACT.go(n.go); },
+  setdur: h => { S.form.dur = +h; render(); },
+  sendreq: () => { S.form.week = document.getElementById('rweek').value; sendRequest(); },
+  nudge: () => { discord('주간발표회-공지', '가능 시간 입력을 기다려요', `아직 안 낸 분: ${PEOPLE.filter(p => !S.avail[p.name].submitted).map(p => p.name).join(', ')}\n마감 ${S.round.deadline}`); toast('아직 안 낸 사람에게 다시 알렸어요'); },
+  calview: v => { S.calView = v; render(); },
+  cycle: i => { const d = S.avail[me()].days[+i]; d.st = {ok:'no', no:'maybe', maybe:'ok'}[d.st]; render(); },
+  step2: () => { const days = S.avail[me()].days; if (!days.some(d => d.st !== 'no')) { S.modal = 'nodays'; return render(); } S.screen = 'C-04'; render(); },
+  tset: (arg, el) => { const [i, k] = arg.split(':'); const d = S.avail[me()].days[+i]; d[k] = +el.value; if (d.e <= d.s) d.e = Math.min(24, d.s + .5); render(); },
+  submitavail: () => { S.modal = null; if (S.stage !== 'input') { toast('지금은 입력 단계가 아니에요'); return; } submitAvail(); },
+  vote: k => { k = +k; S.myVotes.has(k) ? S.myVotes.delete(k) : S.myVotes.add(k); render(); },
+  castvote: () => castVote(),
+  dochange: () => changeSchedule(document.getElementById('creason').value),
+  opennotice: id => { const n = S.notices.find(x => x.id === +id); if (n.status === '임시저장' && isLead()) { S.form = {editing:n.id, tpl:'자유 공지', title:n.title, free:n.body, target:TARGETS()[0]}; S.screen = 'D-02'; render(); } else toast(`${n.title} · ${n.status}`); },
+  resend: id => { const n = S.notices.find(x => x.id === +id); n.status = '대기'; render(); setTimeout(() => { n.status = '발송'; discord('주간발표회-공지', n.title, n.body); render(); }, 900); },
+  newnotice: () => { S.form = {}; S.screen = 'D-02'; render(); },
+  tplsel: (a, el) => { S.form.tpl = el.value; S.form.vals = composeDefaults(el.value); render(); },
+  settarget: t => { S.form.target = t; render(); },
+  draft: () => saveNotice('임시저장'),
+  send: () => saveNotice('대기'),
+  picktpl: i => { S.form.tplIdx = +i; delete S.form.tplBody; delete S.form.tplName; render(); },
+  newtpl: () => { S.tpls.push({name:'새 템플릿', body:'', updated:'방금'}); S.form.tplIdx = S.tpls.length - 1; delete S.form.tplBody; delete S.form.tplName; render(); },
+  inserttag: tag => { const tb = document.getElementById('tbody'); const p = tb.selectionStart ?? tb.value.length; S.form.tplBody = tb.value.slice(0, p) + `{${tag}}` + tb.value.slice(p); render(); },
+  savetpl: () => { const t = S.tpls[S.form.tplIdx ?? 0]; t.name = document.getElementById('tname').value || t.name; t.body = document.getElementById('tbody').value; t.updated = '방금'; delete S.form.tplBody; delete S.form.tplName; toast('템플릿을 저장했어요'); },
+  fcat: c => { S.fileCat = c; render(); },
+  download: n => toast(`${n} 내려받기 시작 (데모)`),
+  refresh: () => { if (!S.refreshed) { S.local.unshift({name:'2026-09-28 20-02-40.mp4', size:'1.4 GB', date:'09-28 21:38', up:false, new:true}); S.refreshed = true; toast('새 파일 1개를 찾았어요'); } else toast('바뀐 파일이 없어요'); },
+  pick: n => { S.sel.has(n) ? S.sel.delete(n) : S.sel.add(n); render(); },
+  doupload: () => { const names = [...(S.pendingDrop || S.sel)]; const cat = document.getElementById('upcat').value; S.pendingDrop = null; startUpload(names, cat); render(); },
+  uploadnotice: () => { S.form = {tpl:'자료 올림 안내', vals:{'발표자':me(), '분류':S.uploads[0]?.cat || '기록'}}; S.screen = isLead() ? 'D-02' : 'D-01'; if (!isLead()) toast('공지는 팀장과 관리자가 써요'); render(); },
+  setrole: (n, el) => { S.roles[n] = el.value; render(); },
+  setadmin: (n, el) => { el.checked ? S.admins.add(n) : S.admins.delete(n); render(); },
+  saveroles: () => toast('역할을 저장했어요'),
+  testmsg: i => { discord('주간발표회-공지', '연결 확인', '관리자 웹에서 보낸 시험 메시지입니다.'); toast('테스트 메시지를 보냈어요'); },
+  newteam: () => { const n = document.getElementById('tmname').value; if (!n) return toast('팀 이름을 써 주세요'); S.teams.push({name:n, ch:n + '-공지', hook:document.getElementById('tmhook').value || '(주소 없음)'}); render(); },
+  admtarget: t => { S.admTarget = t; S.form.target = t; render(); },
+  admperson: (a, el) => { S.admPerson = el.value; S.form.person = el.value; },
+  logout: () => { S.modal = null; S.loggedIn = false; S.screen = 'A-01'; S.form = {}; render(); },
+};
+document.addEventListener('click', e => {
+  const a = e.target.closest('[data-act]'); if (!a || a.tagName === 'SELECT') return;
+  if (a.tagName === 'INPUT' && a.type === 'checkbox') { ACT[a.dataset.act](a.dataset.arg, a); return; }
+  if (a.disabled) return;
+  e.preventDefault(); ACT[a.dataset.act](a.dataset.arg, a, e);
+});
+document.addEventListener('mouseover', e => {
+  const li = e.target.closest('#desc li'); document.querySelectorAll('#desc li').forEach(x => x.classList.toggle('hl', x === li));
+});
+function setRole(r) { S.me = ROLE_OF[r] || r;
+  if (!S.avail[S.me].submitted && S.stage === 'input') S.avail[S.me].days = S.avail[S.me].days.map((d, i) => d.st ? d : {st:'ok', s:defRange(i)[0], e:defRange(i)[1]}); }
+document.getElementById('rolesel').onchange = e => { setRole(e.target.value); render(); };
+document.getElementById('stagesel').onchange = e => { jumpStage(e.target.value); render(); };
+document.getElementById('dcsel').onchange = renderDc;
+window.addEventListener('hashchange', () => { const h = decodeURIComponent(location.hash.slice(1)); if (h && h !== S.screen && SPEC.screens.some(x => x.id === h)) ACT.jump(h); });
+
+function jumpStage(st) {
+  const r = S.me; const keep = {screen:S.screen, loggedIn:S.loggedIn, desc:S.desc, dev:S.dev};
+  S = Object.assign(fresh(r), keep);
+  if (st === 'none') { S.stage = 'none'; PEOPLE.forEach(p => S.avail[p.name].submitted = false); }
+  if (st === 'vote' || st === 'done') { PEOPLE.forEach(p => S.avail[p.name].submitted = true); toVote(true); }
+  if (st === 'done') { S.cands.forEach(c => S.votes[c.key].size && S.votes[c.key].add(me())); confirmTop(true); }
+}
+/* 바로 열기와 캡처용 준비 */
+function prepare(tag) {
+  const [id, v] = tag.split(':');
+  S.loggedIn = id[0] !== 'A';
+  const spec = SPEC.screens.find(s => s.id === id);
+  if (Q.get('role')) setRole(Q.get('role')); else if (SHOT && spec) setRole(spec.role);
+  if (['C-05'].includes(id)) jumpStage('vote');
+  if (['C-06'].includes(id)) jumpStage('done');
+  if (id === 'C-02') jumpStage('none');
+  if (id === 'C-03' && SHOT) { const d = S.avail[me()].days; d[1].st = 'no'; d[3].st = 'maybe'; d[4].st = 'no'; }
+  if (id === 'C-04') { const d = S.avail[me()].days; d[1].st = 'no'; d[3].st = 'maybe'; d[4].st = 'no'; }
+  if (id === 'A-01' && SHOT) { S.form.lid = 'minsu@example.com'; S.err.login = '이메일 또는 비밀번호가 맞지 않아요.'; }
+  if (id === 'A-02' && SHOT) { Object.assign(S.form, {semail:'minsu@example.com', sid:'minsu', sname:'박민수', sdc:'kmshin', spw:'12345678', spw2:'1234'}); S.err.semail = '이미 가입한 이메일이에요.'; S.err.spw = '두 비밀번호가 달라요.'; }
+  if (id === 'A-03' && SHOT) { S.form.remail = 'minsu@example.com'; S.form.resetSent = true; }
+  if (id === 'A-04' && SHOT) { Object.assign(S.form, {remail:'minsu@example.com', npw:'12345678', npw2:'12345678'}); }
+  if (id === 'D-02') { S.form = {tpl:'주간 모임 공지', vals:{'날짜':'9/30(수)', '시간':'20:00', '발표자':'이영희', '주제':'대충 만든 녹화 자동화', '장소':'디스코드 음성 채널'}}; }
+  if (id === 'D-03' && SHOT) S.form.tplIdx = 0;
+  if (id === 'G-03') { S.admTarget = SHOT ? '특정인' : '전체'; S.form = {tpl:'자유 공지', title:'10월 운영 안내', free:'10월부터 발표 순서를 앱에서 정합니다.'}; }
+  if (id === 'E-02' && v === 'uploading') { S.uploads = [{name:'2026-09-24 발표 연습.mp4', p:100, cat:'기록', done:true}, {name:'2026-09-28 20-02-40.mp4', p:64, cat:'기록', done:false}]; S.local.unshift({name:'2026-09-28 20-02-40.mp4', size:'1.4 GB', date:'09-28 21:38', up:false, new:true}); S.local.find(x => x.name.includes('연습')).up = true; }
+  if (id === 'E-02' && !v && SHOT) { S.sel.add('2026-09-24 발표 연습.mp4'); }
+  if (id === 'C-05' && v === 'empty') { S.cands = []; }
+  if (id === 'C-06' && v === 'modal') S.modal = 'change';
+  if (id === 'C-06' && !v && SHOT) { S.history = [{...S.confirmed, reason:'발표자 사정'}]; S.confirmed = {...S.cands[S.cands.length - 1], at:'09-28 09:40', round:2}; }
+  if (id === 'E-01' && v === 'empty') { S.fileCat = '공지'; S.files = S.files.filter(f => f.cat !== '공지'); }
+  if (id === 'D-01' && SHOT) {}
+  if (id === 'F-01') { S.activity.unshift({who:me(), text:'자료 올림: 2026-09-24 발표 연습.mp4', time:'09-27 21:02', go:'E-01'}, {who:me(), text:'9/28 주 가능 시간 제출', time:'09-26 22:14', go:'C-01'}); }
+  S.screen = id;
+}
+const start = decodeURIComponent(location.hash.slice(1));
+if (start && SPEC.screens.some(s => s.id === start.split(':')[0])) prepare(start);
+if (SHOT) S.desc = false;
+render();
+</script>
+</body>
+</html>

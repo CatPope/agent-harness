@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>참고 화면</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/*CSS*/
+body{background:#fff}
+.shotbox{display:none;padding:8px}
+.shotbox.on{display:block}
+#device{display:inline-block}
+.lock{width:390px;min-height:800px;border-radius:44px;background:#0E1513;padding:12px}
+.lock .in{border-radius:34px;min-height:776px;background:#3F4A47;color:#fff;padding:40px 16px;display:flex;flex-direction:column;gap:12px}
+.lock .clock{text-align:center;font-size:64px;font-weight:300;letter-spacing:-.02em;line-height:1}
+.lock .date{text-align:center;font-size:15px;opacity:.8;margin-bottom:30px}
+.pn{background:rgba(255,255,255,.88);color:#14201C;border-radius:18px;padding:12px 14px;display:flex;gap:10px}
+.pn .ap{width:34px;height:34px;border-radius:9px;background:#5865F2;color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.pn.future{background:rgba(255,255,255,.35);border:1.5px dashed rgba(255,255,255,.8);color:#fff}
+.pn.future .ap{background:rgba(255,255,255,.3)}
+.dcwin{width:760px;background:#313338;border-radius:12px;overflow:hidden;color:#DBDEE1}
+.dcwin .top{background:#2B2D31;padding:12px 16px;font-weight:800;color:#F2F3F5;border-bottom:1px solid #1E1F22}
+.dcwin .feed{padding:16px;display:flex;flex-direction:column;gap:18px}
+.popgrid{display:grid;grid-template-columns:repeat(3,300px);gap:16px;padding:16px;background:var(--bg);border-radius:16px;width:max-content}
+.popgrid .cell{display:flex;flex-direction:column;gap:6px}
+.popgrid .lab{font-size:12px;font-weight:700;color:var(--muted)}
+.fake{position:relative;height:250px;border-radius:18px;overflow:hidden;background:var(--sunk);border:1px solid var(--line)}
+.fake .mask{position:absolute}
+.fake .modal{padding:16px}
+.skel{height:14px;border-radius:7px;background:var(--line);margin:6px 0}
+.osdlg{width:560px;border:1px solid #9AA;border-radius:8px;background:#F7F7F7;box-shadow:0 12px 30px rgba(0,0,0,.25);font-size:13px}
+.osdlg .tb{background:#fff;padding:8px 12px;border-bottom:1px solid #ddd;font-weight:600}
+.osdlg .bd{display:flex;height:210px}
+.osdlg .tree{width:170px;border-right:1px solid #ddd;padding:8px;background:#fff}
+.osdlg .files{flex:1;padding:8px}
+.osdlg .ft{display:flex;justify-content:flex-end;gap:8px;padding:10px;border-top:1px solid #ddd}
+.osdlg .sel{background:#CCE4F7}
+</style>
+</head>
+<body class="shot marks">
+<div id="device">
+
+<section class="shotbox" id="R-01">
+  <div class="dcwin">
+    <div class="top" data-d="1"># 주간발표회-공지</div>
+    <div class="feed">
+      <div class="dc" style="background:transparent;padding:0" data-d="2"><div class="who">주간발표회 <span class="bot" data-d="5">앱</span><span class="tm">오늘 22:15</span></div>
+        <div class="emb"><div class="et">일정 확정</div>9/28 주 발표는 9/30(수) 20:00~21:30 입니다.
+득표 3/4
+(자동 공지)</div></div>
+      <div class="dc" style="background:transparent;padding:0" data-d="3"><div class="who">주간발표회 <span class="bot">앱</span><span class="tm">오늘 22:20</span></div>
+        <div class="emb"><div class="et">주간 모임 공지</div>이번 주 주간발표회는 9/30(수) 20:00에 열립니다.
+발표자: 이영희
+주제: 대충 만든 녹화 자동화
+장소: 디스코드 음성 채널</div></div>
+      <div class="dc" style="background:transparent;padding:0" data-d="4"><div class="who">주간발표회 <span class="bot">앱</span><span class="tm">내일 09:40</span></div>
+        <div class="emb" style="border-left-color:#CF4037"><div class="et">일정 변경. 다시 투표해 주세요</div>이전 확정 9/30(수) 20:00~21:30 은 취소됐습니다.
+사유: 발표자 사정
+앱에서 다시 투표해 주세요.</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="shotbox" id="R-02">
+  <div class="lock"><div class="in">
+    <div class="clock">9:41</div><div class="date">9월 26일 토요일</div>
+    <div class="pn" data-d="1"><div class="ap">D</div><div><div class="b">Discord · #주간발표회-공지</div><div class="sm">주간발표회: 일정 확정. 9/30(수) 20:00~21:30</div></div></div>
+    <div class="pn" data-d="2"><div class="ap">D</div><div><div class="b">Discord · #주간발표회-공지</div><div class="sm">가능 시간 입력 요청. 9/28 주 모임 가능 시간을 앱에서 입력해 주세요. 마감 9/30(수)</div></div></div>
+  </div></div>
+</section>
+
+<section class="shotbox" id="R-03">
+  <div class="popgrid">
+    <div class="cell" data-d="1"><div class="lab">확인형</div><div class="fake"><div class="mask mid"><div class="modal"><h2>지금 보낼까요?</h2><div class="muted sm"># 주간발표회-공지 로 바로 올라가요.</div><div class="btns"><button class="btn">취소</button><button class="btn pri">발송하기</button></div></div></div></div></div>
+    <div class="cell" data-d="2"><div class="lab">위험 확인형</div><div class="fake"><div class="mask mid"><div class="modal"><h2>일정을 바꿀까요?</h2><div class="muted sm">지금 확정은 취소되고 전원이 다시 투표해요.</div><div class="btns"><button class="btn">취소</button><button class="btn dangerbg">바꾸기</button></div></div></div></div></div>
+    <div class="cell" data-d="3"><div class="lab">입력형</div><div class="fake"><div class="mask mid"><div class="modal"><h2>사유</h2><input class="inp" value="발표자 사정"><div class="btns"><button class="btn">취소</button><button class="btn pri">확인</button></div></div></div></div></div>
+    <div class="cell" data-d="4"><div class="lab">선택형 (아래 시트)</div><div class="fake"><div class="mask"><div class="modal"><h2>분류</h2><div class="chips"><span class="chip on">기록</span><span class="chip">노하우</span><span class="chip">템플릿</span><span class="chip">공지</span></div><button class="btn pri wide">고르기</button></div></div></div></div>
+    <div class="cell" data-d="5"><div class="lab">토스트</div><div class="fake" style="background:var(--surface)"><div class="toast" style="bottom:24px">임시 저장했어요</div></div></div>
+  </div>
+</section>
+
+<section class="shotbox" id="R-04">
+  <div class="popgrid">
+    <div class="cell" data-d="1"><div class="lab">불러오는 중</div><div class="fake" style="background:var(--surface);padding:16px">
+      <div class="skel" style="width:60%"></div><div class="skel" style="width:40%;height:10px"></div><div class="divider" style="margin:12px 0"></div>
+      <div class="skel" style="width:70%"></div><div class="skel" style="width:35%;height:10px"></div><div class="divider" style="margin:12px 0"></div>
+      <div class="skel" style="width:55%"></div><div class="skel" style="width:45%;height:10px"></div></div></div>
+    <div class="cell" data-d="2"><div class="lab">빈 목록</div><div class="fake" style="background:var(--surface);display:grid;place-items:center"><div class="empty"><div class="b" style="color:var(--text)">아직 공지가 없어요</div><div class="sm" style="margin:4px 0 10px">첫 공지를 템플릿으로 써 보세요</div><button class="btn pri sm">공지 쓰기</button></div></div></div>
+    <div class="cell" data-d="3"><div class="lab">오류</div><div class="fake" style="background:var(--surface);display:grid;place-items:center"><div class="empty"><div class="b" style="color:var(--danger)">자료 목록을 못 불러왔어요</div><div class="sm" style="margin:4px 0 10px">서버에 연결되지 않아요</div><button class="btn sm">다시 시도</button></div></div></div>
+    <div class="cell" data-d="4"><div class="lab">권한 없음</div><div class="fake" style="background:var(--surface);display:grid;place-items:center"><div class="empty"><div class="b" style="color:var(--text)">권한이 없어요</div><div class="sm">이 화면은 관리자만 쓸 수 있어요</div></div></div></div>
+  </div>
+</section>
+
+<section class="shotbox" id="R-05">
+  <div class="win" style="height:auto">
+    <div class="titlebar"><div class="dots"><i></i><i></i><i></i></div>주간발표회 · PC 앱 처음 실행</div>
+    <div class="pcb" style="display:grid;grid-template-columns:300px 1fr;gap:22px;align-items:start">
+      <div class="card" data-d="1" style="display:flex;flex-direction:column;gap:10px"><div class="b">1. 로그인</div><input class="inp" value="minsu"><input class="inp" type="password" value="12345678"><button class="btn pri">로그인</button><div class="hint">스마트폰 앱, 웹과 같은 계정</div></div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="card" data-d="2"><div class="b">2. 녹화 폴더 정하기</div><div class="sm muted">녹화 프로그램이 파일을 저장하는 폴더를 골라 주세요. 이 폴더의 파일이 늘 목록에 보여요.</div></div>
+        <div class="osdlg" data-d="3"><div class="tb">폴더 선택 (운영체제 창)</div>
+          <div class="bd"><div class="tree sm">내 PC<br>&nbsp; 로컬 디스크 (C:)<br>&nbsp; 데이터 (D:)<br>&nbsp;&nbsp;&nbsp; 녹화<br><span class="sel">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 주간발표회</span></div>
+            <div class="files sm faint">2026-09-14 20-01-52.mp4<br>2026-09-21 20-03-11.mp4<br>2026-09-24 발표 연습.mp4</div></div>
+          <div class="ft"><button class="btn sm">취소</button><button class="btn sm pri">폴더 선택</button></div></div>
+        <div class="pathbox" data-d="4"><code>D:\녹화\주간발표회</code><span class="badge ok">저장됨</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+<script>
+const id = decodeURIComponent(location.hash.slice(1));
+document.getElementById(id)?.classList.add('on');
+requestAnimationFrame(() => {
+  const dev = document.getElementById('device'), base = dev.getBoundingClientRect(), seen = new Set();
+  dev.querySelectorAll('.shotbox.on [data-d]').forEach(e => {
+    const n = +e.dataset.d; if (!n || seen.has(n)) return; seen.add(n);
+    const r = e.getBoundingClientRect();
+    const box = document.createElement('div'); box.className = 'mkbox';
+    Object.assign(box.style, {left:(r.left - base.left - 3) + 'px', top:(r.top - base.top - 3) + 'px', width:(r.width + 6) + 'px', height:(r.height + 6) + 'px'});
+    const mk = document.createElement('div'); mk.className = 'mk'; mk.textContent = n;
+    Object.assign(mk.style, {left:(r.right - base.left - 14) + 'px', top:Math.max(2, r.top - base.top - 10) + 'px'});
+    dev.appendChild(box); dev.appendChild(mk);
+  });
+});
+</script>
+</body>
+</html>

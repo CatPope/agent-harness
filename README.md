@@ -219,8 +219,9 @@ Windows에서 심볼릭 링크는 관리자 권한을 요구하지만 디렉터�
 |----|------|------|
 | `documents` | active | 한글 `.hwpx` 문서를 실제로 만들고 고치는 스킬. 편집 가능한 OWPML 표 삽입, 이미지로 박힌 표의 복원 |
 | `skillcraft` | active | 스킬을 만들고 고치는 메타 도구. 포터빌리티 규약·린터·템플릿, OPC/ZIP 진단기 |
+| `project-docs` | active | 프로젝트 초기 산출물. 과제제안서·요구사항서, 화면설계서·클릭 데모, WBS 일정표, 발표 자료, 보고서, UI 원칙. 양식 원본과 가명 예시 포함 |
 
-둘 다 `CatPope/doc-skills` 에서 왔습니다. **본문은 영어입니다** — 들여온 그대로 두었고,
+`documents` 와 `skillcraft` 는 `CatPope/doc-skills` 에서 왔습니다. **본문은 영어입니다** — 들여온 그대로 두었고,
 번역하면 규약 문장이 뭉개질 위험이 커서 손대지 않았습니다.
 
 ## 스킬
@@ -296,6 +297,20 @@ Windows에서 심볼릭 링크는 관리자 권한을 요구하지만 디렉터�
 `skills/skillcraft/portable-skill-authoring/scripts/check_skill.py`.
 사본을 따로 두지 않습니다. 스킬은 자기 스크립트를 함께 지녀야 홀로 쓸 수 있으므로
 그 자리가 정본이고, `tools/check_skill.py` 는 **검사 로직이 전혀 없는 런처**입니다.
+
+### `project-docs` — 팩 선택 시 설치
+
+| 스킬 | 역할 |
+|------|------|
+| `planning-docs` | 과제제안서·요구사항서를 양식 서식 그대로 채운다. 목차 쪽 번호는 Word 로, HWPX 양식은 DOCX 로 바꿔 읽는다 |
+| `screen-design-doc` | 화면설계서(yamestyle 양식)와 클릭 데모 HTML 을 한 원본에서 만든다. 흑백 와이어프레임 캡처, FR 추적 |
+| `ui-design-principles` | Figma UI 원칙 7가지와 모던하게 보이는 최소 규칙, 점검표 |
+| `wbs-excel` | WBS 일정표(xlsm + HTML). 조건부 서식 막대, VBA 인원별 시트 동기화 |
+| `presentation-deck` | 발표 자료를 양식 PPTX 에 채운다. 시각자료 위주, 짧은 단문, 사람이 고친 판 되먹이기 |
+| `report-writing` | 보고서 종류 8가지와 종류별 목차. md 로 쓰고 필요하면 docx 로 바꾼다 |
+
+한 프로젝트(모임 관리 앱)에서 자란 스킬이라 `examples/` 는 그 프로젝트를 가명으로 옮긴 것입니다.
+`templates/` 의 양식은 받은 원본 그대로이며 출처는 각 `SKILL.md` 에 있습니다. 한국어 본문입니다.
 
 ## 규약
 
