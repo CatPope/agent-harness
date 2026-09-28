@@ -390,6 +390,8 @@ def build_pptx(shots):
     for i, row in enumerate(SPEC['history'], start=1):
         for j, v in enumerate(row):
             set_text(t.cell(i, j), v, size=9)   # 양식 첫 행과 같은 9pt. 빈 행은 크기가 없어 기본 18pt 로 커졌다
+            if i > 1:                          # 빈 행은 정렬도 첫 행과 달라 날짜 열이 어긋났다. 첫 행을 따른다
+                t.cell(i, j).text_frame.paragraphs[0].alignment = t.cell(1, j).text_frame.paragraphs[0].alignment
 
     # 서비스 개요
     ot = next(sh for sh in s_over.shapes if sh.has_table)
