@@ -230,8 +230,16 @@ $shListProject = New-TestProject "sh-list"
 $psListProject = New-TestProject "ps-list"
 $shList = Invoke-ShInstall "sh list" @("--project", (Get-BashPath $shListProject), "--list")
 $psList = Invoke-PsInstall "ps list" @("-Project", $psListProject, "-List")
-$firstCopyPattern = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('67O17IKsIDLqsJw='))
-$sameSkipPattern = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('67O17IKsIDDqsJwsIDLqsJwg6rG064SI65yAKOqwmeydjCAy'))
+# Expected counts come from the manifest. A hardcoded "2" broke this check once plain-writing joined the
+# documents pack (3f0f2b7): the installer printed 3 and CI failed from then on. Korean text stays base64 for PS 5.1.
+$docSkills = @((Get-Content -LiteralPath (Join-Path $root "packs/documents.json") -Raw -Encoding UTF8 | ConvertFrom-Json).skills).Count
+function From-B64([string]$s) { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($s)) }
+$copyWord = From-B64 '67O17IKsIA=='      # "copy "
+$unit = From-B64 '6rCc'                    # count unit
+$unitComma = From-B64 '6rCcLCA='           # count unit + ", "
+$skipSame = From-B64 '6rCcIOqxtOuEiOucgCjqsJnsnYwg'   # count unit + " skipped(same "
+$firstCopyPattern = "$copyWord$docSkills$unit"
+$sameSkipPattern = "${copyWord}0$unitComma$docSkills$skipSame$docSkills"
 Assert-True (($shFirst -join "`n").Contains($firstCopyPattern)) "sh first copy count"
 Assert-True (($psFirst -join "`n").Contains($firstCopyPattern)) "ps first copy count"
 Assert-True (($shAgain -join "`n").Contains($sameSkipPattern)) "sh identical rerun"
@@ -240,6 +248,6 @@ foreach ($output in @($shList, $psList)) {
   $joined = $output -join "`n"
   Assert-True ($joined -match 'supervisor-worker' -and $joined -match 'documents' -and $joined -match 'implementation') "list output"
 }
-Write-Output "PASS[10] sh/ps first copy=2; rerun copy=0 skip=2 same=2; list includes workflow/pack/topic"
+Write-Output "PASS[10] sh/ps first copy=$docSkills; rerun copy=0 skip=$docSkills same=$docSkills; list includes workflow/pack/topic"
 
 Write-Output "FUNCTIONAL_TESTS_PASS temp=$tempRoot"
