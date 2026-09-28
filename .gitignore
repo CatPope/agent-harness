@@ -29,6 +29,6 @@ package-lock.json
 *.jpg
 *.jpeg
 
-# project-docs 팩의 양식과 가명 예시는 스킬 자산이다(2026-09-28 사용자 결정). 개인정보를 지운 판만 둔다.
+# project-docs 팩의 양식은 스킬 자산이다(2026-09-28 사용자 결정). 가명으로 옮긴 판만 둔다.
 !skills/project-docs/*/templates/*
 !skills/project-docs/*/examples/*

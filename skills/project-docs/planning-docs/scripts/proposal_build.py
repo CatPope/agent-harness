@@ -16,7 +16,7 @@ TPL = _USER if _USER.lower().endswith('.hwpx') else os.path.join(HERE, '..', 'te
 TPL_DOCX = _USER if _USER.lower().endswith('.docx') else os.path.join(HERE, '..', 'templates', '[양식] 과제제안서.docx')   # HWPX 가 없으면 이 DOCX 에서 쪽 설정·머리말을 읽는다
 if _USER.lower().endswith('.docx'):
     TPL = ''                     # 사용자가 DOCX 를 줬으면 기본 HWPX 를 찾지 않는다
-OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
+OUT_DIR = os.path.abspath(os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out'))
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.2.1'
 OUT = os.path.join(OUT_DIR, f'[1차] 과제제안서_v{VER}.docx')

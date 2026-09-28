@@ -20,8 +20,8 @@ from PIL import Image
 
 HERE = Path(__file__).resolve().parent
 # 사용자 양식이 있으면 TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
-TPL = Path(os.environ.get('TEMPLATE') or HERE.parent / 'templates' / '[양식] V1.0_화면설계서.pptx')
-OUTDIR = Path(os.environ.get('OUT_DIR') or Path.cwd() / 'out')
+TPL = Path(os.environ.get('TEMPLATE') or HERE.parent / 'templates' / '[양식] 화면설계서.pptx')
+OUTDIR = Path(os.environ.get('OUT_DIR') or Path.cwd() / 'out').resolve()
 OUTDIR.mkdir(parents=True, exist_ok=True)
 SHOTDIR = OUTDIR / '_build'          # 캡처 중간 파일
 VER = sys.argv[1] if len(sys.argv) > 1 else '1.0.0'
@@ -362,7 +362,14 @@ LOGICS = [
 # ---------------------------------------------------------------- 5. PPTX 만들기
 def build_pptx(shots):
     prs = Presentation(str(TPL))
-    s_title, s_hist, s_over, _, _, _, s_desc = list(prs.slides)
+    # 양식 장은 자리가 아니라 역할로 찾는다. 원래 양식(7장)도, 대표 페이지만 남긴 산출물도 양식이 될 수 있다.
+    tpl_slides = list(prs.slides)
+    tpl_ids = [sld.get('id') for sld in prs.slides._sldIdLst]
+    title_of = lambda sl: sl.shapes.title.text.strip() if sl.shapes.title is not None else ''
+    s_title = next(sl for sl in tpl_slides if sl.slide_layout.name == '제목 슬라이드')
+    s_hist = next(sl for sl in tpl_slides if title_of(sl).startswith('History'))
+    s_over = next(sl for sl in tpl_slides if title_of(sl).startswith('서비스 개요'))
+    s_desc = next(sl for sl in tpl_slides if sl.slide_layout.name == 'Description')
     pno_src = next(sh for sh in s_hist.shapes if sh.shape_type == 17)
     hist_tbl = next(sh for sh in s_hist.shapes if sh.has_table)
     desc_tbl = next(sh for sh in s_desc.shapes if sh.has_table)
@@ -377,9 +384,12 @@ def build_pptx(shots):
 
     # History
     t = hist_tbl.table
+    for tr in t._tbl.findall(qn('a:tr'))[1 + len(SPEC['history']):]:
+        if ''.join(tr.itertext()).strip():  # 산출물을 양식으로 쓸 때 남는 옛 기록 행만 뺀다. 빈 행은 양식대로 둔다
+            t._tbl.remove(tr)
     for i, row in enumerate(SPEC['history'], start=1):
         for j, v in enumerate(row):
-            set_text(t.cell(i, j), v)
+            set_text(t.cell(i, j), v, size=9)   # 양식 첫 행과 같은 9pt. 빈 행은 크기가 없어 기본 18pt 로 커졌다
 
     # 서비스 개요
     ot = next(sh for sh in s_over.shapes if sh.has_table)
@@ -389,6 +399,9 @@ def build_pptx(shots):
         set_text(ot.table.cell(i, 1), lines)
     for tr in trs[6:]:
         tbl.remove(tr)
+    for sh in list(s_over.shapes):         # 산출물을 양식으로 쓰면 이 글상자가 이미 있다
+        if sh.has_text_frame and sh.text_frame.text.startswith('기획일정은'):
+            sh._element.getparent().remove(sh._element)
     textbox(s_over, 33, 150, 272, 10,['기획일정은 WBS 일정표를 따른다.',
                                         '1차 기간 2026-09-21 ~ 2026-11-20. 와이어프레임 초안 홍길동, 화면 검수 이영희.'], size=9, color='404040')
 
@@ -459,9 +472,11 @@ def build_pptx(shots):
             for pi, part in enumerate(parts):
                 desc_slide(new('Description'), desc_tbl, s, gid, gname, part, f' ({pi + 1}/{len(parts)})' if len(parts) > 1 else '')
 
-    # 양식 예시 장표(User flow, Logic process, 메뉴 그룹, Description 예시)를 뺀다
-    for idx in (6, 5, 4, 3):
-        drop_slide(prs, idx)
+    # 표지·History·서비스 개요만 채워 쓰고, 나머지 양식 장(예시 장표)은 모두 뺀다
+    keep = {id(s_title), id(s_hist), id(s_over)}
+    for sl, sid in reversed(list(zip(tpl_slides, tpl_ids))):
+        if id(sl) not in keep:
+            drop_slide(prs, [x.get('id') for x in prs.slides._sldIdLst].index(sid))
     # 복제한 도형의 id 가 겹치면 PowerPoint 가 파일을 열지 못한다. 슬라이드마다 새로 매긴다.
     for sl in prs.slides:
         for k, el in enumerate(sl.shapes._spTree.iter(qn('p:cNvPr')), start=2):
@@ -481,6 +496,10 @@ def desc_slide(sl, desc_tbl, s, gid, gname, shot_items, suffix):
     set_text(dt.cell(1, 0), [s['summary'], f"관련 요구사항 {s['fr']}"], size=8)
     items = s['items']
     trs = dt._tbl.findall(qn('a:tr'))
+    while len(trs) < 2 + len(items):       # 양식 표의 번호 행이 모자라면 마지막 행을 복제한다
+        tr = copy.deepcopy(trs[-1]); dt._tbl.append(tr); trs.append(tr)
+    for i in range(len(items)):
+        set_text(dt.cell(2 + i, 0), str(i + 1), size=8.5)
     for extra_tr in trs[2 + len(items):]:
         dt._tbl.remove(extra_tr)
     for i, it in enumerate(items):

@@ -9,7 +9,7 @@
 BODY 는 예시 프로젝트(모임 관리 앱)의 내용이다. 자기 프로젝트에 맞게 바꿔 쓴다.
 3.11 그림은 arch_build.py 로 만든 PNG 를 ARCH_PNG(기본: out/구성 아키텍처.png)에서 읽는다.
 """
-import copy, os, sys, tempfile
+import copy, os, re, sys, tempfile
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
@@ -20,7 +20,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 사용자 양식이 있으면 REQ_TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
 TPL = os.environ.get('REQ_TEMPLATE') or os.path.join(HERE, '..', 'templates', '[양식] 요구사항서.docx')
-OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
+OUT_DIR = os.path.abspath(os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out'))
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.3.0'      # 2.3.0: 기술 스택 확정, 이메일 로그인(사용자 09-27, 결정 #74 #75). 2.2.1: 구성 아키텍처 그림을 v1.2.0 으로(사용자 09-27). 2.2.0: 3.11 에 구성 아키텍처 그림(docs/설계 v1.1.0) 추가(사용자 09-27 지시). 2.1.1: 용어 정리(서비스/시스템 관리자·운영자, 사용자 09-27 지시). 2.1.0: 역할 5종·운영자(2차)·임시 저장/발송·확정 뒤 재투표·미니PC 사양·2.1 "기능: 내용" 형식·표 글자 10.5pt (사용자 09-25 지시)
 DATE = '2026-09-27'
@@ -304,7 +304,7 @@ BODY = [
     ('pagebreak',),
     ('h2', '3.11 시스템 요구사항'),
     ('h3', '구성 아키텍처'),
-    ('img', os.environ.get('ARCH_PNG') or os.path.join(OUT_DIR, '구성 아키텍처.png')),
+    ('img', os.path.abspath(os.environ.get('ARCH_PNG') or os.path.join(OUT_DIR, '구성 아키텍처.png'))),
     ('text', '그림의 추천 칸이 정한 기술 스택이다. 대안 칸은 비교할 때 본 후보로 남겨 둔다.'),
     ('blank',),
     ('h3', '운영 환경'),
@@ -560,11 +560,17 @@ def build():
     sect = els[-1]
     assert sect.tag == qn('w:sectPr'), '마지막 요소가 sectPr 이 아니다'
 
-    def find(prefix):
-        for p in paras:
-            if p_text(p).startswith(prefix):
-                return copy.deepcopy(p)
-        raise KeyError(prefix)
+    def find(*prefixes, rx=None):
+        # 본보기 문단을 글자로 찾는다. 양식이 바뀌어도 찾도록 후보 글과 정규식을 여럿 받는다.
+        for prefix in prefixes:
+            for p in paras:
+                if p_text(p).startswith(prefix):
+                    return copy.deepcopy(p)
+        if rx:
+            for p in paras:
+                if re.match(rx, p_text(p)):
+                    return copy.deepcopy(p)
+        raise KeyError(prefixes)
 
     def toc_of(style):
         # 스타일 ID(XML 의 w:val)와 스타일 이름('toc 1')이 다르므로 python-docx 로 이름을 비교한다
@@ -574,10 +580,11 @@ def build():
         raise KeyError(style)
 
     X = {
-        'title': find('요 구 사 항 서'), 'subtitle': find('Agent를 위한'), 'toc_title': find('목 차'),
+        'title': find('요 구 사 항 서'), 'subtitle': find('Agent를 위한', SUBTITLE), 'toc_title': find('목 차'),
         'toc1': toc_of('toc 1'), 'toc2': toc_of('toc 2'),
         'h1': find('1. 개요'), 'h2': find('1.1 시스템의'), 'h3': find('시스템 구성'),
-        'item': find('1) LLM'), 'text': find('목적:'), 'note': find('FR-04 · FR-05'), 'dict': find('소스(채널)'),
+        'item': find('1) LLM', rx=r'1\) '), 'text': find('목적:'), 'note': find('FR-04 · FR-05', rx=r'FR-\d+ '),
+        'dict': find('소스(채널)', rx=r'\S+\s+= '),
         'small': find('인수 시 유의 사항'), 'img': next(copy.deepcopy(p) for p in paras if p.find('.//' + qn('w:drawing')) is not None),
         # 빈 문단 본보기. 표지 뒤 문단(P15)은 쪽 나눔을 품고 있어 빼야 한다 — 이걸 썼더니 빈 줄마다 쪽이 넘어가 42쪽이 됐다
         'blank': next(copy.deepcopy(p) for p in paras[16:] if not p_text(p).strip()
@@ -585,6 +592,20 @@ def build():
     }
     cover_tbl = copy.deepcopy(tbls[0])
     tbl_x = [copy.deepcopy(t) for t in tbls]
+    tbl_head = [[''.join(x.text or '' for x in tc.iter(qn('w:t'))).strip() for tc in tr.findall(qn('w:tc'))]
+                for tr in (t.find(qn('w:tr')) for t in tbls)]
+
+    def tpl_table(idx, header):
+        # BODY 의 번호는 처음 양식의 표 순서다. 그 자리의 머리행이 같으면 그대로 쓴다.
+        # 다르면(양식이 바뀜) 머리행이 같은 표를 고른다. 같은 머리행이 여럿이면 BODY 안에서의 순서를 맞춘다.
+        header = list(header)
+        if idx < len(tbl_x) and tbl_head[idx] == header:
+            return tbl_x[idx]
+        same = [i for i, h in enumerate(tbl_head) if h == header]
+        if not same:
+            return tbl_x[min(idx, len(tbl_x) - 1)]
+        order = sorted({e[1] for e in BODY if e[0] == 'table' and list(e[2]) == header})
+        return tbl_x[same[min(order.index(idx), len(same) - 1)]]
 
     # 본문 비우기
     for e in els[:-1]:
@@ -628,7 +649,7 @@ def build():
         elif k == 'pagebreak':
             pagebreak()
         elif k == 'table':
-            add(make_table(tbl_x[el[1]], el[2], el[3], WIDTHS.get(el[2][0] + '/' + el[2][-1])))
+            add(make_table(tpl_table(el[1], el[2]), el[2], el[3], WIDTHS.get(el[2][0] + '/' + el[2][-1])))
         elif k == 'img':
             img = os.path.join(IMG_DIR, el[1])
             if not os.path.exists(img):

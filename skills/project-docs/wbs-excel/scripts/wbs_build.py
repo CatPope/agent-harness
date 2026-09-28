@@ -10,8 +10,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 # 양식은 이 스킬의 templates/ 에서 읽고, 결과는 실행 폴더의 out/ 에 쓴다.
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 사용자 양식이 있으면 TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
-SRC = os.environ.get('TEMPLATE') or os.path.join(HERE, '..', 'templates', '[양식] WBS_일정관리.xlsx')
-OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
+SRC = os.environ.get('TEMPLATE') or os.path.join(HERE, '..', 'templates', '[양식] WBS_일정관리.xlsm')
+OUT_DIR = os.path.abspath(os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out'))
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.5.0'
 SUB_INDENT = '    '                       # 하위 항목 제목 앞 빈칸 (C:G 병합이라 열로 들여쓸 수 없다)
@@ -111,6 +111,10 @@ def week_date(w):
 
 # ---------- 양식 스타일 채집 ----------
 wb = load_workbook(SRC)
+# 산출물을 양식으로 쓰면 생성기가 만들 시트가 이미 있다. 겹치지 않게 먼저 뺀다(없으면 그냥 지나간다).
+for _name in (DST_NAME, '설정', '_서식'):
+    if _name in wb.sheetnames:
+        wb.remove(wb[_name])
 ws = wb[SRC_NAME]
 ST = dict(
     title=copy.copy(ws['A2']._style), proj=copy.copy(ws['A4']._style), sub=copy.copy(ws['A5']._style),
