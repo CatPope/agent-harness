@@ -19,7 +19,8 @@ from pptx.util import Mm, Pt
 from PIL import Image
 
 HERE = Path(__file__).resolve().parent
-TPL = HERE.parent / 'templates' / '[양식] V1.0_화면설계서.pptx'
+# 사용자 양식이 있으면 TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
+TPL = Path(os.environ.get('TEMPLATE') or HERE.parent / 'templates' / '[양식] V1.0_화면설계서.pptx')
 OUTDIR = Path(os.environ.get('OUT_DIR') or Path.cwd() / 'out')
 OUTDIR.mkdir(parents=True, exist_ok=True)
 SHOTDIR = OUTDIR / '_build'          # 캡처 중간 파일

@@ -9,7 +9,8 @@ from openpyxl.formatting.rule import FormulaRule
 sys.stdout.reconfigure(encoding='utf-8')
 # 양식은 이 스킬의 templates/ 에서 읽고, 결과는 실행 폴더의 out/ 에 쓴다.
 HERE = os.path.dirname(os.path.abspath(__file__))
-SRC = os.path.join(HERE, '..', 'templates', '[양식] WBS_일정관리.xlsx')
+# 사용자 양식이 있으면 TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
+SRC = os.environ.get('TEMPLATE') or os.path.join(HERE, '..', 'templates', '[양식] WBS_일정관리.xlsx')
 OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.5.0'

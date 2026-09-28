@@ -18,7 +18,8 @@ from docx.text.paragraph import Paragraph
 
 sys.stdout.reconfigure(encoding='utf-8')
 HERE = os.path.dirname(os.path.abspath(__file__))
-TPL = os.path.join(HERE, '..', 'templates', '[양식] 요구사항서.docx')
+# 사용자 양식이 있으면 REQ_TEMPLATE 로 준다. templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
+TPL = os.environ.get('REQ_TEMPLATE') or os.path.join(HERE, '..', 'templates', '[양식] 요구사항서.docx')
 OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.3.0'      # 2.3.0: 기술 스택 확정, 이메일 로그인(사용자 09-27, 결정 #74 #75). 2.2.1: 구성 아키텍처 그림을 v1.2.0 으로(사용자 09-27). 2.2.0: 3.11 에 구성 아키텍처 그림(docs/설계 v1.1.0) 추가(사용자 09-27 지시). 2.1.1: 용어 정리(서비스/시스템 관리자·운영자, 사용자 09-27 지시). 2.1.0: 역할 5종·운영자(2차)·임시 저장/발송·확정 뒤 재투표·미니PC 사양·2.1 "기능: 내용" 형식·표 글자 10.5pt (사용자 09-25 지시)

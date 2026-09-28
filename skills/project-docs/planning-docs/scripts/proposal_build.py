@@ -10,8 +10,12 @@ from hwpx_docx import Hwpx, run, para, pic, cell, table, render, BORDER_THIN, BO
 
 sys.stdout.reconfigure(encoding='utf-8')
 HERE = os.path.dirname(os.path.abspath(__file__))
-TPL = os.path.join(HERE, '..', 'templates', '[양식] 과제제안서.hwpx')        # 원본 HWPX 가 있으면 여기에 둔다
-TPL_DOCX = os.path.join(HERE, '..', 'templates', '[양식] 과제제안서.docx')   # HWPX 가 없으면 이 변환본에서 쪽 설정·머리말을 읽는다
+# 사용자 양식이 있으면 PROPOSAL_TEMPLATE 로 준다(.hwpx 또는 .docx). templates/ 의 양식은 사용자 양식이 없을 때만 쓴다.
+_USER = os.environ.get('PROPOSAL_TEMPLATE') or ''
+TPL = _USER if _USER.lower().endswith('.hwpx') else os.path.join(HERE, '..', 'templates', '[양식] 과제제안서.hwpx')   # HWPX 가 있으면 여기서 서식을 읽는다
+TPL_DOCX = _USER if _USER.lower().endswith('.docx') else os.path.join(HERE, '..', 'templates', '[양식] 과제제안서.docx')   # HWPX 가 없으면 이 DOCX 에서 쪽 설정·머리말을 읽는다
+if _USER.lower().endswith('.docx'):
+    TPL = ''                     # 사용자가 DOCX 를 줬으면 기본 HWPX 를 찾지 않는다
 OUT_DIR = os.environ.get('OUT_DIR') or os.path.join(os.getcwd(), 'out')
 os.makedirs(OUT_DIR, exist_ok=True)
 VER = '2.2.1'
