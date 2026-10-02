@@ -21,13 +21,27 @@ RULES = [
     ("화살표 연결", re.compile(r"→|->")),
     ("콜론 설명", re.compile(r"^[^:：]{1,20}\s?[:：]\s+\S")),
     ("대구 'A가 아니라 B'", re.compile(r"(이|가) 아니라 ")),
-    ("상투어", re.compile(r"핵심은|결론적으로|즉,|(?:^|[.\s])즉\s|중요합니다|할 수 있습니다")),
+    ("상투어", re.compile(r"핵심은|결론적으로|즉,|(?:^|[.\s])즉\s|중요합니다|할 수 있습니다"
+                         r"|시사하는 바|주목할 만|다음과 같|크게 (?:두|세|네) 가지")),
+    ("분열문·결산", re.compile(r"(?:필요한|중요한) 것은|관건은|[가-힣] 이유(?:다|입니다)$|[가-힣] 이유(?:다|입니다)\."
+                            r"|할 때(?:이다|입니다)|다는 것이다|다는 것입니다")),
+    ("변환 공식", re.compile(r"단순(?:한|히) .{1,20}(?:을|를) 넘어")),
+    ("번역투", re.compile(r"에 있어서?\s|에 의해|에 의한|되어지|되어진|어지게 되|가지고 있"
+                         r"|(?:을|를) 가졌|와 관련하여|과 관련하여|에 관하여|에서의|으로의|에로의|으로부터의")),
     # 별점(★☆)은 척도라 뺀다.
     ("이모지", re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u2604\u2607-\u27BF\u2B50]")),
 ]
 BOLD = re.compile(r"\*\*[^*]+\*\*")
 # 출처 목록의 긴 주소가 긴 문장으로 걸리지 않게 길이를 잴 때만 뺀다.
 URL = re.compile(r"https?://\S+")
+# 한 번은 괜찮고 몰리면 티가 나는 것. 문서 전체에서 센다. (이름, 패턴, 기준 횟수)
+DENSITY = [
+    ("연결어미 뒤 쉼표", re.compile(r"[가-힣](?:고|며|지만|면서|아서|어서|여서),\s"), 6),
+    ("~를 통해", re.compile(r"(?:을|를) 통해"), 3),
+    ("~에 대해", re.compile(r"에 대해"), 3),
+    ("~할 수 있다", re.compile(r"[가-힣] 수 있"), 4),
+    ("~되고 있다", re.compile(r"(?:되|지)고 있"), 3),
+]
 TEXT_TAGS = re.compile(r"<(?:a:t|w:t|hp:t)(?:\s[^>]*)?>([^<]*)</(?:a:t|w:t|hp:t)>")
 PARA_END = re.compile(r"</(?:a:p|w:p|hp:p)>")
 
@@ -62,7 +76,11 @@ def read_lines(path):
 
 def check(path):
     hits = 0
-    for where, line in read_lines(path):
+    lines = read_lines(path)
+    seen = {name: [] for name, _, _ in DENSITY}
+    for where, line in lines:
+        for name, rx, _ in DENSITY:
+            seen[name] += [where] * len(rx.findall(line))
         plain = line.strip("|#>-* ").strip()
         found = [name for name, rx in RULES if rx.search(plain)]
         if len(BOLD.findall(line)) >= 2:
@@ -74,6 +92,11 @@ def check(path):
         if found:
             hits += 1
             print("  [%s] %s\n      %s" % (where, " · ".join(found), plain[:110]))
+    for name, _, limit in DENSITY:
+        where = seen[name]
+        if len(where) >= limit:
+            hits += 1
+            print("  [문서] %s %d회 (기준 %d회) · 위치 %s" % (name, len(where), limit, ", ".join(where[:8])))
     return hits
 
 
