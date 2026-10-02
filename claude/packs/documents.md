@@ -14,3 +14,8 @@
 - 사람에게 내는 글(발표 자료 · 보고서 · 제출물)은 [[plain-writing]] 을 따른다. 산출물 위주,
   양식 준수, 짧은 문장. **"내용 - 부연설명" 형식은 쓰지 않는다.** 다 쓰면
   `plain-writing/scripts/check_tone.py` 로 검사한다.
+
+- 사람에게 넘기기 전 마감은 [[deliverable-finish]] 를 따른다. **외부 모델 검토 → 양식과 같은
+  파일 형식 → 메타데이터 확인 → AI 흔적이 있으면 최종 수정** 순서다. 검토자는 작성한 모델이
+  아닌 것으로, Codex 가 없으면 Grok, 그다음 Gemini, 그조차 없으면 Fable 을 쓴다.
+  `office_meta.py check` 가 🟢 을 낼 때까지 완료로 세지 않는다.

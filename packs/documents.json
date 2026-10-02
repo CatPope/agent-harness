@@ -2,7 +2,7 @@
   "id": "documents",
   "name": "문서 작성·편집",
   "status": "active",
-  "summary": "사람에게 내는 문서를 만들고 고치는 스킬 묶음. 한글 .hwpx 에 편집 가능한 표를 넣고, 이미지로 박힌 표를 진짜 표로 되돌리고, AI 티가 나지 않는 담백한 문장으로 쓴다.",
+  "summary": "사람에게 내는 문서를 만들고 고치는 스킬 묶음. 한글 .hwpx 에 편집 가능한 표를 넣고, 이미지로 박힌 표를 진짜 표로 되돌리고, AI 티가 나지 않는 담백한 문장으로 쓰고, 마감 때 외부 검토·양식 형식·메타데이터·AI 흔적을 확인한다.",
   "requires": [
     "Python >= 3.9",
     "Node.js (verify_hwpx.mjs 검증용)"
@@ -10,9 +10,10 @@
   "skills": [
     "hwpx-table-kit",
     "hwpx-image-table-to-table",
-    "plain-writing"
+    "plain-writing",
+    "deliverable-finish"
   ],
   "claude": "claude/packs/documents.md",
   "origin": "CatPope/doc-skills (2026-09-21 이 레포로 병합)",
-  "note": "스킬 본문은 영어다. doc-skills 의 규약을 그대로 들여온 것이라 손대지 않는다. hwpx-image-table-to-table 은 레시피이고 hwpx-table-kit 을 엔진으로 쓴다 — 따로 설치하지 말고 묶음째 설치한다. plain-writing 은 한국어 본문이다 — 한국어 문장 규칙이라 번역하지 않는다."
+  "note": "스킬 본문은 영어다. doc-skills 의 규약을 그대로 들여온 것이라 손대지 않는다. hwpx-image-table-to-table 은 레시피이고 hwpx-table-kit 을 엔진으로 쓴다 — 따로 설치하지 말고 묶음째 설치한다. plain-writing 은 한국어 본문이다 — 한국어 문장 규칙이라 번역하지 않는다. deliverable-finish 도 한국어 본문이다 — 마감 절차와 메타데이터 검사 스크립트(표준 라이브러리만)를 지닌다."
 }
