@@ -223,6 +223,9 @@ def cmd_fix(args):
             v = tf.get(tag)
             if v is not None and not LIB_PAT.search(v):
                 new_app = put(new_app, tag, v, "</Properties>")
+            elif get(new_app, tag) is not None and LIB_PAT.search(get(new_app, tag)):
+                # 양식 값도 흔적이면 산출물에 남은 흔적 값을 비운다 (예: Company = PptxGenJS)
+                new_app = put(new_app, tag, "", "</Properties>")
 
     with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w") as zout:
         for info in zin.infolist():

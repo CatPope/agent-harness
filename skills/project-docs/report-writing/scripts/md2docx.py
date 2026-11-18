@@ -1,8 +1,12 @@
 """보고서 md 를 docx 로 바꾼다. pandoc 이 없는 PC 용 (2026-09-26).
 
 지원: # ~ #### 제목, 문단, 파이프 표, 글머리(- ), 체크 목록(- [ ]), 번호 목록(1. ), 코드 블록(```),
-      인라인 **굵게**, `코드`, [글자](URL) 링크.
-쓰는 법: python md2docx.py <입력.md> [출력.docx]   출력을 빼면 같은 이름의 .docx
+      인라인 **굵게**, `코드`, [글자](URL) 링크, 그림 ![설명](md 기준 상대경로)(2026-10-30),
+      글머리 다음 줄을 들여 쓴 이어지는 줄(앞 글머리에 붙인다).
+쓰는 법: python md2docx.py <입력.md> [출력.docx] [--gdocs]   출력을 빼면 같은 이름의 .docx
+      --gdocs: 구글독스에 올릴 판. 머리 메타줄(날짜 · 작성자 · 버전 · 종류)을 뺀다(report-format §7).
+      --compact: 한 장 요약. 제목 크기와 간격, 그림 폭을 줄인다.
+      "## 목차" 아래 글머리 목록은 Word 목차 필드가 된다. ## 이하 제목은 Heading 스타일이다.
 글꼴은 맑은 고딕, A4, 표는 Table Grid + 머리행 음영. 보고서 규칙은 스킬 report-writing.
 """
 import re, sys, os
@@ -108,15 +112,43 @@ def add_table(doc, rows):
     doc.add_paragraph()
 
 
-def convert(src, dst):
+def add_toc(doc, items):
+    """## 목차 아래 글머리 목록을 Word 목차 필드로 만든다. 목록 글이 필드의 표시값이 된다.
+    구글독스로 변환하면 목차 요소가 되고, 문서에서 목차 새로고침을 한 번 누르면 제목 링크가 걸린다."""
+    def fld(run, kind):
+        el = OxmlElement('w:fldChar'); el.set(qn('w:fldCharType'), kind); run._r.append(el)
+    for k, (indent, text) in enumerate(items):
+        text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)   # md 목차의 내부 링크는 글만 남긴다
+        p = doc.add_paragraph(); spacing(p, 0, 1)
+        p.paragraph_format.left_indent = Mm(4 + (5 if indent else 0))
+        if k == 0:
+            r = p.add_run(); fld(r, 'begin')
+            ins = OxmlElement('w:instrText'); ins.set(qn('xml:space'), 'preserve'); ins.text = ' TOC \\o "1-2" \\h \\z \\u '
+            r._r.append(ins); fld(r, 'separate')
+        set_font(p.add_run(text), size=10.5)
+        if k == len(items) - 1:
+            fld(p.add_run(), 'end')
+
+
+META = re.compile(r'^\d{4}-\d{2}-\d{2} · .+ · v\d+\.\d+\.\d+')
+IMG = re.compile(r'^!\[[^\]]*\]\(([^)]+)\)$')
+CONT = re.compile(r'^\s+(?!- |\d+\. )\S')
+
+
+def convert(src, dst, gdocs=False, compact=False):
     lines = open(src, encoding='utf-8').read().split('\n')
+    base = os.path.dirname(os.path.abspath(src))
+    last = None   # 바로 앞 글머리 문단. 들여 쓴 이어지는 줄을 여기에 붙인다
     doc = Document()
     sec = doc.sections[0]
     sec.page_width, sec.page_height = Mm(210), Mm(297)
     sec.left_margin = sec.right_margin = Mm(20); sec.top_margin = sec.bottom_margin = Mm(20)
     st = doc.styles['Normal']; st.font.name = FONT; st.font.size = Pt(10.5)
     st.element.rPr.rFonts.set(qn('w:eastAsia'), FONT)
-    sizes = {1: 20, 2: 15, 3: 12.5, 4: 11}
+    sizes = {1: 24, 2: 18, 3: 12.5, 4: 11} if gdocs else {1: 20, 2: 15, 3: 12.5, 4: 11}   # 구글독스 판은 사용자가 고친 크기(2026-10-30)
+    if compact:   # 한 장 요약. 제목을 줄여 한 쪽에 들게 한다
+        sizes = {1: 18, 2: 13, 3: 11.5, 4: 11}
+    img_w = Mm(118) if compact else Mm(TEXT_W - 10)
     i = 0
     while i < len(lines):
         ln = lines[i]
@@ -129,6 +161,17 @@ def convert(src, dst):
                 p.paragraph_format.left_indent = Mm(4)
                 set_font(p.add_run(code), name=MONO, size=9, color='333333')
             doc.add_paragraph(); i = j + 1; continue
+        if gdocs and META.match(ln):
+            i += 1; continue
+        m = IMG.match(ln.strip())
+        if m:
+            p = doc.add_paragraph(); spacing(p, 4, 2); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.add_run().add_picture(os.path.join(base, m.group(1)), width=img_w)
+            last = None; i += 1; continue
+        if last is not None and CONT.match(ln):   # 글머리 아래 들여 쓴 줄은 한 줄씩 들여 쓴 문단으로 둔다(사용자가 구글독스에서 이렇게 나눴다, 2026-10-30)
+            p = doc.add_paragraph(); spacing(p, 0, 2); p.paragraph_format.left_indent = Mm(18)
+            add_inline(p, ln.strip()); i += 1; continue
+        last = None
         if ln.startswith('|'):
             j = i
             while j < len(lines) and lines[j].startswith('|'):
@@ -136,9 +179,22 @@ def convert(src, dst):
             add_table(doc, lines[i:j]); i = j; continue
         m = re.match(r'^(#{1,4}) (.+)$', ln)
         if m:
-            lv = len(m.group(1)); p = doc.add_paragraph()
-            spacing(p, 14 if lv <= 2 else 8, 6 if lv <= 2 else 3, 1.1)
-            add_inline(p, m.group(2), size=sizes[lv], bold=True)
+            lv = len(m.group(1)); title = m.group(2).strip()
+            if title == '목차':   # 목차 제목은 목차에 다시 나오지 않게 보통 문단으로 둔다
+                p = doc.add_paragraph(); spacing(p, 14, 6, 1.1)
+                add_inline(p, title, size=sizes[lv], bold=True)
+                j = i + 1; items = []
+                while j < len(lines) and (not lines[j].strip() or re.match(r'^\s*- ', lines[j])):
+                    if lines[j].strip():
+                        items.append((len(lines[j]) - len(lines[j].lstrip()), lines[j].strip()[2:]))
+                    j += 1
+                add_toc(doc, items); i = j; continue
+            # 구글독스가 제목으로 알아보고 목차·개요에 넣도록 ## 이하는 제목 스타일을 쓴다. 맨 위 # 은 보통 문단
+            p = doc.add_paragraph(style=f'Heading {lv - 1}') if lv >= 2 else doc.add_paragraph()
+            spacing(p, (6 if compact else 14) if lv <= 2 else (3 if compact else 8), (2 if compact else 6) if lv <= 2 else 3, 1.1)
+            add_inline(p, title, size=sizes[lv], bold=True)
+            for r in p.runs:
+                r.font.color.rgb = RGBColor(0, 0, 0); r.italic = False
             if lv == 1:
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             i += 1; continue
@@ -151,7 +207,7 @@ def convert(src, dst):
         if m:
             p = doc.add_paragraph(); spacing(p, 0, 2)
             p.paragraph_format.left_indent = Mm(5 + len(m.group(1)) * 2); p.paragraph_format.first_line_indent = Mm(-3.5)
-            add_inline(p, '• ' + m.group(2)); i += 1; continue
+            add_inline(p, '• ' + m.group(2).rstrip()); last = p; i += 1; continue
         m = re.match(r'^(\s*)(\d+)\. (.+)$', ln)
         if m:
             p = doc.add_paragraph(); spacing(p, 0, 2)
@@ -161,11 +217,26 @@ def convert(src, dst):
             p = doc.add_paragraph(); spacing(p)
             add_inline(p, ln.strip())
         i += 1
+    if compact:   # 한 쪽에 들도록 여백과 줄 간격을 줄인다. 구글독스 변환 뒤 쪽 수는 PDF 로 내려받아 센다
+        sec.top_margin = sec.bottom_margin = Mm(15); sec.left_margin = sec.right_margin = Mm(18)
+        for p in list(doc.paragraphs):   # 표 뒤에 넣은 빈 문단을 지운다. 그림 문단은 글이 없어도 남긴다
+            if not p.text.strip() and not p._p.xpath('.//w:drawing'):
+                p._p.getparent().remove(p._p)
+        for p in doc.paragraphs:
+            p.paragraph_format.line_spacing = 1.0
+            if p.paragraph_format.space_after and p.paragraph_format.space_after > Pt(2):
+                p.paragraph_format.space_after = Pt(2)
+        for t in doc.tables:
+            for row in t.rows:
+                for c in row.cells:
+                    for p in c.paragraphs:
+                        p.paragraph_format.line_spacing = 1.0
     doc.save(dst)
     print('saved', dst)
 
 
 if __name__ == '__main__':
-    src = sys.argv[1]
-    dst = sys.argv[2] if len(sys.argv) > 2 else os.path.splitext(src)[0] + '.docx'
-    convert(src, dst)
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    src = args[0]
+    dst = args[1] if len(args) > 1 else os.path.splitext(src)[0] + '.docx'
+    convert(src, dst, gdocs='--gdocs' in sys.argv, compact='--compact' in sys.argv)
