@@ -1,0 +1,15 @@
+{
+  "id": "engineering",
+  "name": "개발 설계·성능",
+  "status": "active",
+  "summary": "코드를 짜기 전에 정해야 하는 설계를 실측으로 끝낸다. DB 설계를 논리 설계에서 멈추지 않고 용량 산정, 질의 유형, 색인, 반정규화, 합성 데이터 실측까지 간다.",
+  "requires": [
+    "Python >= 3.9 (표준 라이브러리만)"
+  ],
+  "skills": [
+    "db-performance-design"
+  ],
+  "claude": null,
+  "origin": "한 앱 프로젝트의 ERD 검토(2026-09-30)에서 만들었다",
+  "note": "SQLite 는 파일 형식 수준까지, PostgreSQL·MySQL 은 달라지는 것만 다룬다. scripts/ 의 측정 도구 셋(B-tree 크기, 질의 계획 점검, 커밋 비용)은 표준 라이브러리만 쓴다."
+}
