@@ -1,0 +1,3 @@
+# Python deps for live-demo-rehearsal.
+# openpyxl -> write the demo script workbook (scripts/scenes_to_xlsx.py)
+openpyxl>=3.1
