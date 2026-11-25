@@ -1,0 +1,16 @@
+{
+  "id": "desktop-test",
+  "name": "데스크톱 UI 시험",
+  "status": "active",
+  "summary": "사람이 같은 PC 의 다른 가상 데스크톱에서 일하는 동안, 에이전트가 시험 데스크톱에서 실제 사용자처럼 클릭과 키 입력으로 UI 를 시험한다. 포커스를 뺏지 않는 조작법과 창 단위 캡처, 알림 중계를 담는다.",
+  "requires": [
+    "Windows 10 이상, Windows PowerShell 5.1",
+    "Chrome(브라우저 시험 때)"
+  ],
+  "skills": [
+    "background-ui-test"
+  ],
+  "claude": null,
+  "origin": "2026-11-25 두 PC 파일 전달 시험에서 받는 쪽 PC 세션이 쓴 방식을 정리해 신설",
+  "note": "창을 다른 가상 데스크톱으로 옮기는 vmove.ps1 은 Windows 10 19041~19045 의 내부 COM 인터페이스로 확인했다. Windows 11 은 내부 GUID 가 달라 옮기기는 그대로 안 되고(확인 안 함), 데스크톱 확인(-Check)은 공개 API 라 된다."
+}
